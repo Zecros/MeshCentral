@@ -1,0 +1,264 @@
+body.nordbase-remote-share {
+    --nordbase-bg: #070807;
+    --nordbase-panel: rgba(16, 18, 15, 0.94);
+    --nordbase-line: rgba(246, 244, 238, 0.14);
+    --nordbase-text: #f6f4ee;
+    --nordbase-muted: rgba(246, 244, 238, 0.64);
+    --nordbase-accent: #9ff0bd;
+    --nordbase-danger: #ff6b6b;
+    background: var(--nordbase-bg) !important;
+    color: var(--nordbase-text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: 0;
+}
+
+body.nordbase-remote-share #deskarea1,
+body.nordbase-remote-share #deskarea4 {
+    position: relative !important;
+    z-index: 5 !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    padding: 0 12px !important;
+    background: var(--nordbase-panel) !important;
+    color: var(--nordbase-text) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+body.nordbase-remote-share #deskarea1 {
+    border-bottom: 1px solid var(--nordbase-line) !important;
+}
+
+body.nordbase-remote-share #deskarea4 {
+    border-top: 1px solid var(--nordbase-line) !important;
+}
+
+body.nordbase-remote-share #deskarea1 > div,
+body.nordbase-remote-share #deskarea4 > div {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: 100% !important;
+    float: none !important;
+}
+
+body.nordbase-remote-share #deskarea1 .toright2,
+body.nordbase-remote-share #deskarea4 .toright2 {
+    order: 2 !important;
+    margin-left: auto !important;
+}
+
+body.nordbase-remote-share #connectbutton1span,
+body.nordbase-remote-share #connectbutton1hspan,
+body.nordbase-remote-share #connectbutton2span,
+body.nordbase-remote-share #p13Connect,
+body.nordbase-remote-share .deskareaicon,
+body.nordbase-remote-share #DeskType,
+body.nordbase-remote-share #DeskWD,
+body.nordbase-remote-share #deskkeys,
+body.nordbase-remote-share #DeskSaveImageButton {
+    display: none !important;
+}
+
+body.nordbase-remote-share input,
+body.nordbase-remote-share select {
+    min-height: 30px !important;
+    border: 1px solid var(--nordbase-line) !important;
+    border-radius: 6px !important;
+    background: rgba(246, 244, 238, 0.08) !important;
+    color: var(--nordbase-text) !important;
+    font: inherit !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+body.nordbase-remote-share input[type=button] {
+    padding: 0 10px !important;
+    cursor: pointer;
+}
+
+body.nordbase-remote-share input[type=button]:hover {
+    background: rgba(246, 244, 238, 0.14) !important;
+    border-color: rgba(246, 244, 238, 0.26) !important;
+}
+
+body.nordbase-remote-share #disconnectbutton1,
+body.nordbase-remote-share #disconnectbutton2 {
+    min-width: 104px !important;
+    height: 32px !important;
+    border-color: rgba(255, 107, 107, 0.34) !important;
+    background: rgba(255, 107, 107, 0.13) !important;
+    color: #ffdede !important;
+    font-weight: 650 !important;
+}
+
+body.nordbase-remote-share #deskActionsSettings {
+    min-width: 124px !important;
+    height: 32px !important;
+}
+
+body.nordbase-remote-share #deskstatus,
+body.nordbase-remote-share #termstatus,
+body.nordbase-remote-share #p13Status {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    color: var(--nordbase-accent) !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    padding: 7px 10px !important;
+    border: 1px solid rgba(159, 240, 189, 0.22) !important;
+    border-radius: 999px !important;
+    background: rgba(159, 240, 189, 0.1) !important;
+}
+
+body.nordbase-remote-share #deskstatus::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 4px rgba(159, 240, 189, 0.12);
+}
+
+body.nordbase-remote-share #deskarea3x {
+    max-height: calc(100vh - 88px) !important;
+    height: calc(100vh - 88px) !important;
+    background: #050605 !important;
+}
+
+body.nordbase-remote-share #rmmRemoteBadge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-right: 4px !important;
+    color: var(--nordbase-text) !important;
+    font-weight: 750 !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+body.nordbase-remote-share #rmmRemoteBadge::before {
+    content: "B";
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--nordbase-text);
+    color: #080a08;
+    font-weight: 850;
+}
+
+body.nordbase-remote-share #rmmRemoteBadge span {
+    color: var(--nordbase-muted);
+    font-weight: 500;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.nordbase-remote-share #p11power,
+body.nordbase-remote-share #DeskLatency,
+body.nordbase-remote-share #DeskTimer,
+body.nordbase-remote-share #DeskControlSpan {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 28px !important;
+    width: auto !important;
+    padding: 0 10px !important;
+    border: 1px solid var(--nordbase-line) !important;
+    border-radius: 999px !important;
+    background: rgba(246, 244, 238, 0.06) !important;
+    color: var(--nordbase-muted) !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+body.nordbase-remote-share #DeskTimer:empty,
+body.nordbase-remote-share #DeskLatency:empty {
+    display: none !important;
+}
+
+body.nordbase-remote-share #idx_deskFullBtn2 {
+    width: 30px !important;
+    height: 30px !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    border-radius: 6px !important;
+    background: rgba(246, 244, 238, 0.08) !important;
+    color: var(--nordbase-muted) !important;
+    cursor: pointer !important;
+    float: none !important;
+    margin: 0 !important;
+}
+
+body.nordbase-remote-share #dialog {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: min(520px, calc(100vw - 32px)) !important;
+    max-height: min(720px, calc(100vh - 32px)) !important;
+    transform: translate(-50%, -50%) !important;
+    border: 1px solid var(--nordbase-line) !important;
+    border-radius: 8px !important;
+    background: rgba(18, 20, 17, 0.98) !important;
+    color: var(--nordbase-text) !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45) !important;
+    overflow: hidden !important;
+}
+
+body.nordbase-remote-share #dialogHeader {
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-bottom: 1px solid var(--nordbase-line) !important;
+    background: rgba(246, 244, 238, 0.04) !important;
+    padding: 0 12px 0 16px !important;
+    box-sizing: border-box !important;
+}
+
+body.nordbase-remote-share #id_dialogtitle {
+    color: var(--nordbase-text) !important;
+    font-size: 14px !important;
+    font-weight: 750 !important;
+}
+
+body.nordbase-remote-share #dialogBody {
+    padding: 16px !important;
+    color: var(--nordbase-text) !important;
+    box-sizing: border-box !important;
+}
+
+body.nordbase-remote-share #dialog7 h4 {
+    margin: 0 0 12px !important;
+    color: var(--nordbase-text) !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .06em !important;
+}
+
+body.nordbase-remote-share #dialog7 > div > div {
+    display: grid !important;
+    grid-template-columns: 140px 1fr !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 42px !important;
+    border-top: 1px solid rgba(246, 244, 238, 0.08) !important;
+}
+
+body.nordbase-remote-share #dialog7 label,
+body.nordbase-remote-share #dialog7 > div > div > div:first-child {
+    color: var(--nordbase-muted) !important;
+    font-size: 12px !important;
+}

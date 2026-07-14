@@ -11,8 +11,10 @@
     <link type="text/css" href="styles/style-sharing.css" media="screen" rel="stylesheet" title="CSS" />
     <link type="text/css" href="styles/xterm.css" media="screen" rel="stylesheet" title="CSS" />
     {{{customCSSTags}}}
-    <link rel="apple-touch-icon" href="/favicon-303x303.png" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23080a08'/%3E%3Cpath d='M16 17h22c7 0 11 4 11 10 0 4-2 7-6 8 5 1 8 5 8 10 0 7-5 11-13 11H16V17zm12 9v7h8c3 0 5-1 5-4s-2-3-5-3h-8zm0 15v7h9c4 0 6-1 6-4s-2-3-6-3h-9z' fill='%23f6f4ee'/%3E%3Cpath d='M12 12h40v6H12z' fill='%239ff0bd'/%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='38' fill='%23080a08'/%3E%3Cpath d='M45 46h62c20 0 32 11 32 28 0 12-6 20-17 24 15 4 23 14 23 29 0 20-15 31-38 31H45V46zm34 26v22h22c9 0 15-4 15-12s-6-10-15-10H79zm0 47v22h26c11 0 17-4 17-12s-6-10-17-10H79z' fill='%23f6f4ee'/%3E%3Cpath d='M34 34h112v17H34z' fill='%239ff0bd'/%3E%3C/svg%3E" />
     <script type="text/javascript" src="scripts/common-0.0.1{{min}}.js"></script>
+    <script type="text/javascript" src="scripts/nordbase-clipboard-sync.js"></script>
     <script type="text/javascript" src="scripts/amt-redir-ws-0.1.0{{{min}}}.js"></script>
     <script type="text/javascript" src="scripts/amt-wsman-ws-0.2.0{{{min}}}.js"></script>
     <script type="text/javascript" src="scripts/agent-redir-ws-0.1.1{{{min}}}.js"></script>
@@ -30,9 +32,357 @@
     <script type="text/javascript" src="scripts/xterm-addon-image{{{min}}}.js"></script>
     <script keeplink=1 type="text/javascript" src="scripts/filesaver.min.js"></script>
     {{{customJSTags}}}
-    <title>{{{title}}}</title>
+    <title>Nordbase Remote</title>
+    <style>
+        :root {
+            --nordbase-bg: #070807;
+            --nordbase-panel: rgba(16, 18, 15, 0.92);
+            --nordbase-panel-solid: #10120f;
+            --nordbase-line: rgba(246, 244, 238, 0.13);
+            --nordbase-text: #f6f4ee;
+            --nordbase-muted: rgba(246, 244, 238, 0.64);
+            --nordbase-subtle: rgba(246, 244, 238, 0.08);
+            --nordbase-accent: #9ff0bd;
+            --nordbase-danger: #ff6b6b;
+        }
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            letter-spacing: 0;
+        }
+        body.rmm-remote {
+            background: var(--nordbase-bg) !important;
+            color: var(--nordbase-text);
+        }
+        body.rmm-remote .areaHead,
+        body.rmm-remote .areaFoot,
+        body.rmm-remote .areaHead2,
+        body.rmm-remote .areaHead3 {
+            background: var(--nordbase-panel) !important;
+            color: var(--nordbase-text) !important;
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+        body.rmm-remote #deskarea1,
+        body.rmm-remote #deskarea4 {
+            position: relative;
+            z-index: 5;
+            height: 44px !important;
+            min-height: 44px !important;
+            line-height: 44px !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            box-sizing: border-box;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        body.rmm-remote #deskarea1 {
+            border-bottom: 1px solid var(--nordbase-line) !important;
+        }
+        body.rmm-remote #deskarea4 {
+            border-top: 1px solid var(--nordbase-line) !important;
+        }
+        body.rmm-remote #deskarea1 > div,
+        body.rmm-remote #deskarea4 > div {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 100%;
+        }
+        body.rmm-remote #deskarea1 .toright2,
+        body.rmm-remote #deskarea4 .toright2 {
+            order: 2;
+            margin-left: auto;
+            float: none !important;
+        }
+        body.rmm-remote input,
+        body.rmm-remote select {
+            min-height: 30px;
+            border: 1px solid var(--nordbase-line) !important;
+            border-radius: 6px !important;
+            background: rgba(246, 244, 238, 0.08) !important;
+            color: var(--nordbase-text) !important;
+            font: inherit;
+            font-size: 12px;
+            line-height: 1;
+            transition: background .16s ease, border-color .16s ease, transform .16s ease;
+        }
+        body.rmm-remote input[type=button] {
+            padding: 0 10px;
+            cursor: pointer;
+        }
+        body.rmm-remote input[type=button]:hover {
+            background: rgba(246, 244, 238, 0.13) !important;
+            border-color: rgba(246, 244, 238, 0.24) !important;
+        }
+        body.rmm-remote input[type=button]:active {
+            transform: translateY(1px);
+        }
+        body.rmm-remote #DeskClip {
+            display: inline-flex !important;
+            align-items: center;
+            font-weight: 650;
+        }
+        body.rmm-remote #connectbutton1span,
+        body.rmm-remote #connectbutton1hspan,
+        body.rmm-remote #connectbutton2span,
+        body.rmm-remote #p13Connect,
+        body.rmm-remote .deskareaicon,
+        body.rmm-remote #DeskType,
+        body.rmm-remote #DeskWD,
+        body.rmm-remote #deskkeys,
+        body.rmm-remote #DeskSaveImageButton {
+            display: none !important;
+        }
+        body.rmm-remote #disconnectbutton1,
+        body.rmm-remote #disconnectbutton2 {
+            min-width: 104px;
+            height: 32px;
+            border-color: rgba(255, 107, 107, 0.32) !important;
+            background: rgba(255, 107, 107, 0.12) !important;
+            color: #ffdede !important;
+            font-weight: 650;
+        }
+        body.rmm-remote #disconnectbutton1:hover,
+        body.rmm-remote #disconnectbutton2:hover {
+            background: rgba(255, 107, 107, 0.2) !important;
+            border-color: rgba(255, 107, 107, 0.48) !important;
+        }
+        body.rmm-remote #deskActionsSettings {
+            height: 32px;
+            min-width: 124px;
+            font-size: 12px;
+            padding: 0 10px;
+            background: rgba(246, 244, 238, 0.08) !important;
+        }
+        body.rmm-remote #deskstatus,
+        body.rmm-remote #termstatus,
+        body.rmm-remote #p13Status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--nordbase-accent) !important;
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 1;
+            padding: 7px 10px;
+            border: 1px solid rgba(159, 240, 189, 0.22);
+            border-radius: 999px;
+            background: rgba(159, 240, 189, 0.1);
+        }
+        body.rmm-remote #deskstatus::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: currentColor;
+            box-shadow: 0 0 0 4px rgba(159, 240, 189, 0.12);
+        }
+        body.rmm-remote #deskarea3x {
+            max-height: calc(100vh - 88px) !important;
+            height: calc(100vh - 88px) !important;
+            background: #050605;
+        }
+        body.rmm-remote #rmmRemoteBadge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 0;
+            color: var(--nordbase-text);
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        body.rmm-remote #rmmRemoteBadge::before {
+            content: "B";
+            display: inline-grid;
+            place-items: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--nordbase-text);
+            color: #080a08;
+            font-weight: 850;
+        }
+        body.rmm-remote #rmmRemoteBadge span {
+            color: var(--nordbase-muted);
+            font-weight: 500;
+            max-width: 34vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        body.rmm-remote #p11power,
+        body.rmm-remote #DeskLatency,
+        body.rmm-remote #DeskTimer {
+            display: inline-flex !important;
+            align-items: center;
+            min-height: 28px;
+            width: auto !important;
+            padding: 0 10px;
+            border: 1px solid var(--nordbase-line);
+            border-radius: 999px;
+            background: rgba(246, 244, 238, 0.06);
+            color: var(--nordbase-muted);
+            font-size: 12px;
+            line-height: 1;
+        }
+        body.rmm-remote #DeskTimer:empty,
+        body.rmm-remote #DeskLatency:empty {
+            display: none !important;
+        }
+        body.rmm-remote #DeskControlSpan {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 28px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: rgba(246, 244, 238, 0.06);
+            color: var(--nordbase-muted);
+            font-size: 12px;
+        }
+        body.rmm-remote #DeskControlSpan input {
+            min-height: auto;
+            margin: 0;
+            accent-color: var(--nordbase-accent);
+        }
+        body.rmm-remote #idx_deskFullBtn2 {
+            width: 30px;
+            height: 30px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 6px;
+            background: rgba(246, 244, 238, 0.08);
+            color: var(--nordbase-muted);
+            cursor: pointer;
+            float: none !important;
+            margin: 0 !important;
+            transition: background .16s ease, color .16s ease;
+        }
+        body.rmm-remote #idx_deskFullBtn2:hover {
+            background: rgba(246, 244, 238, 0.14);
+            color: var(--nordbase-text);
+        }
+        body.rmm-remote #dialog {
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            width: min(520px, calc(100vw - 32px)) !important;
+            max-height: min(720px, calc(100vh - 32px));
+            transform: translate(-50%, -50%);
+            border: 1px solid var(--nordbase-line);
+            border-radius: 8px;
+            background: rgba(18, 20, 17, 0.98);
+            color: var(--nordbase-text);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        body.rmm-remote #dialogHeader {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--nordbase-line);
+            background: rgba(246, 244, 238, 0.04);
+            padding: 0 12px 0 16px;
+            box-sizing: border-box;
+        }
+        body.rmm-remote #id_dialogtitle {
+            color: var(--nordbase-text);
+            font-size: 14px;
+            font-weight: 750;
+        }
+        body.rmm-remote #id_dialogclose {
+            order: 2;
+            margin-left: auto;
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            border-radius: 6px;
+            color: var(--nordbase-muted);
+            cursor: pointer;
+        }
+        body.rmm-remote #id_dialogclose:hover {
+            background: rgba(246, 244, 238, 0.08);
+            color: var(--nordbase-text);
+        }
+        body.rmm-remote #dialogBody {
+            padding: 16px;
+            color: var(--nordbase-text);
+            box-sizing: border-box;
+            max-height: calc(100vh - 150px);
+            overflow: auto;
+        }
+        body.rmm-remote #dialog7 h4 {
+            margin: 0 0 12px;
+            color: var(--nordbase-text);
+            font-size: 12px;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        body.rmm-remote #dialog7 > div > div {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            align-items: center;
+            gap: 12px;
+            min-height: 42px;
+            border-top: 1px solid rgba(246, 244, 238, 0.08);
+        }
+        body.rmm-remote #dialog7 > div > div > div:first-child {
+            color: var(--nordbase-muted);
+            font-size: 12px;
+        }
+        body.rmm-remote #dialog7 label {
+            color: var(--nordbase-muted);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        body.rmm-remote #dialog7 input[type=checkbox] {
+            min-height: auto;
+            margin-right: 8px;
+            accent-color: var(--nordbase-accent);
+        }
+        body.rmm-remote #dialog7 select {
+            width: 100%;
+            height: 34px;
+        }
+        body.rmm-remote #dialog7 option {
+            background: #10120f;
+            color: var(--nordbase-text);
+        }
+        body.rmm-remote #dialog7 #d7desktopOtherSettings {
+            margin-top: 10px;
+        }
+        body.rmm-remote #dialog7 #d7otherset2 {
+            padding: 8px 0;
+        }
+        body.rmm-remote #idx_dlgButtonBar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--nordbase-line);
+            background: rgba(0, 0, 0, 0.16);
+        }
+        body.rmm-remote #idx_dlgButtonBar input {
+            min-width: 84px;
+        }
+        body.rmm-remote #idx_dlgOkButton {
+            background: var(--nordbase-accent) !important;
+            border-color: var(--nordbase-accent) !important;
+            color: #071008 !important;
+            font-weight: 750;
+        }
+    </style>
 </head>
-<body style="overflow:hidden;background-color:black">
+<body class="rmm-remote" style="overflow:hidden;background-color:black">
     <div id=LeftSideToolBar style="display:none;position:absolute;left:0;bottom:0;width:52px;top:0;background:#113962;background:linear-gradient(to bottom, #104893 0%,#113962 100%);color:white;border-right: 5px solid #BBB;">
         <div id=LeftMenuDesktop class="slbbutton slbbuttonsel2" title="Desktop" onclick=go(11)>
             <div class="slb1" style="position:absolute;top:6px;left:6px"></div>
@@ -52,17 +402,18 @@
                     <div class='deskareaicon' title="Toggle View Mode" onclick="toggleAspectRatio(1)">&#8690;</div>
                     <div class='deskareaicon' title="Rotate Left" onclick="drotate(-1)">&olarr;</div>
                     <div class='deskareaicon' title="Rotate Right" onclick="drotate(1)">&orarr;</div>
-                    <input id="deskActionsSettings" type="button" value="Settings..." title="Edit remote desktop settings" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()" class="mR" />
+                    <input id="deskActionsSettings" type="button" value="Remote settings" title="Remote desktop settings" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()" class="mR" />
                     <div id="desktopCustomUiButtons" style="float:left"></div>
                     <div id="deskRecordIcon" class='deskareaicon' title="Server is recording this session" style="display:none;background-color:red;width:12px;height:12px;border-radius:6px;margin-top:5px"></div>
                 </div>
                 <div>
+                    <span id="rmmRemoteBadge">Nordbase Remote <span id="rmmRemoteDevice"></span></span>
                     <div id="idx_deskFullBtn2" onclick=deskToggleFull(event)>&nbsp;&#x2716;</div>
                     <input type="button" id="autoconnectbutton1" value="AutoConnect" onclick=autoConnectDesktop(event) onkeypress="return false" onkeydown="return false" style="display:none" />
                     <span id=connectbutton1span><input type=button id=connectbutton1 cmenu="deskConnectButton" value="Connect" onclick=connectDesktop(event,3) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
                     <span id=connectbutton1hspan>&nbsp;<input type=button id=connectbutton1h value="HW Connect" title="Connect using Intel AMT hardware KVM" onclick=connectDesktop(event,2) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
-                    <span id=disconnectbutton1span>&nbsp;<input type=button id=disconnectbutton1 value="Disconnect" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false" /></span>
-                    &nbsp;<span id="deskstatus">Disconnected</span><span id="deskmetadata"></span>
+                    <span id=disconnectbutton1span>&nbsp;<input type=button id=disconnectbutton1 value="End session" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false" /></span>
+                    &nbsp;<span id="deskstatus">Waiting</span><span id="deskmetadata"></span>
                 </div>
             </div>
             <div id=deskarea3x style="max-height:calc(100vh - 52px);height:calc(100vh - 56px);">
@@ -98,7 +449,7 @@
                     <input id="DeskWD" type=button value="Send" onkeypress="return false" onkeydown="return false" onclick="deskSendKeys()" />
                     <input id="DeskClip" style="" type="button" value="Clipboard" onkeypress="return false" onkeydown="return false" onclick="showDeskClip()" />
                     <input id="DeskType" style="" type="button" value="Type" onkeypress="return false" onkeydown="return false" onclick="showDeskType()" />
-                    <label><span id="DeskControlSpan" title="Toggle mouse and keyboard input"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" />Input</span></label>&nbsp;
+                    <label><span id="DeskControlSpan" title="Toggle mouse and keyboard input"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" />Control input</span></label>&nbsp;
                 </div>
             </div>
         </div>
@@ -229,7 +580,7 @@
             </div>
             <div id=dialog7 style="">
                 <div id="d7meshkvm">
-                    <h4>Agent Remote Desktop</h4>
+                    <h4>Nordbase Remote</h4>
                     <div>
                         <div>Quality</div>
                         <select id="d7bitmapquality" dir="rtl"></select>
@@ -257,7 +608,7 @@
                         </select>
                     </div>
                     <div id="d7desktopOtherSettings">
-                        <div>Other Settings</div>
+                        <div>Input</div>
                         <div id="d7otherset2" style="display:block">
                             <label style="display:block"><input type="checkbox" id="d7deskSwapMouse" />Swap Mouse Buttons</label>
                             <label style="display:block"><input type="checkbox" id="d7deskRemoteKeyMap" />Use Remote Keyboard Map</label>
@@ -309,8 +660,28 @@
         var debugmode = urlargs.debug;
         var attemptWebRTC = false;
         var updateSessionTimer = null;
-        var StatusStrs = ["Disconnected", "Connecting...", "Setup...", "Connected", "Intel&reg; AMT Connected"];
+        var shareControl = null;
+        var shareControlReady = false;
+        var shareControlReconnectTimer = null;
+        var clipboardSyncTimer = null;
+        var clipboardSyncEnabled = true;
+        var clipboardLastLocal = null;
+        var clipboardLastRemote = null;
+        var clipboardRemoteSeeded = false;
+        var clipboardForceNextRemoteToLocal = false;
+        var clipboardBackgroundReadAllowed = false;
+        var clipboardPendingPaste = false;
+        var clipboardPendingPasteTimer = null;
+        var clipboardAwaitingPasteEvent = false;
+        var clipboardPasteGestureTimer = null;
+        var clipboardCopyTimers = [];
+        var clipboardSuppressedKeyUps = {};
+        var clipboardStatus = 'Automatic sync is starting…';
+        var rmmDesktopReconnectTimer = null;
+        var rmmDesktopReconnectEnabled = true;
+        var StatusStrs = ["Waiting", "Connecting", "Preparing", "Connected", "Hardware connected"];
         var nodeName = decodeURIComponent('{{{nodeName}}}');
+        var remotePlatform = '{{{remotePlatform}}}';
         var webPageFullScreen = false;
         var expire = '{{{expire}}}';
         if (expire != '') {
@@ -344,13 +715,18 @@
         var p13FilesConsoleMsgTimer = null;
 
         function start() {
+            document.body.classList.add('rmm-remote');
             window.onresize = deskAdjust;
             document.onkeypress = ondockeypress;
             document.onkeydown = ondockeydown;
             document.onkeyup = ondockeyup;
+            document.addEventListener('paste', handleAutomaticClipboardPasteEvent, true);
+            window.addEventListener('beforeunload', stopRmmRemoteRuntime);
             setupDesktop();
             setupTerminal();
             setupFiles();
+            setupShareControl();
+            setClipboardSyncEnabled(getstore('rmmClipboardSync', '1') !== '0', false);
 
             // Set the file editor
             d4EditWrapVal = Number(getstore('editorWrap', 0));
@@ -363,7 +739,10 @@
             d4ToggleLineBreak(true);
 
             // Set the document title
-            if (nodeName.length > 0) { document.title += ' - ' + nodeName; }
+            if (nodeName.length > 0) {
+                document.title = 'Nordbase Remote - ' + nodeName;
+                QH('rmmRemoteDevice', EscapeHtml(nodeName));
+            }
 
             // View only mode
             if (viewOnly == 1) {
@@ -398,6 +777,286 @@
             QS('p13')['left'] = (featureCount > 1) ? '54px' : '0px';
 
             deskAdjust();
+            setTimeout(rmmRemoteAutoConnect, 250);
+        }
+
+        function rmmRemoteAutoConnect() {
+            if ((features & 2) && (desktop == null)) { connectDesktop(null, 1); return; }
+            if ((features & 1) && (terminal == null)) { connectTerminal(null, 1); return; }
+            if ((features & 4) && (files == null)) { connectFiles(null); }
+        }
+
+        function shareIsExpired() { return (expire != '') && (parseInt(expire) <= Date.now()); }
+
+        function setupShareControl() {
+            if (((features & 2) == 0) || shareIsExpired()) return;
+            if ((shareControl != null) && ((shareControl.readyState == 0) || (shareControl.readyState == 1))) return;
+            var protocol = (window.location.protocol == 'https:') ? 'wss://' : 'ws://';
+            try {
+                shareControl = new WebSocket(protocol + window.location.host + domainUrl + 'sharecontrol.ashx?auth=' + encodeURIComponent(authCookie));
+            } catch (ex) { scheduleShareControlReconnect(); return; }
+            shareControl.onopen = function () { shareControlReady = false; updateDesktopButtons(); };
+            shareControl.onmessage = function (event) {
+                var message = null;
+                try { message = JSON.parse(event.data); } catch (ex) { return; }
+                if ((message.action == 'sharecontrol') && (message.status == 'ready')) {
+                    shareControlReady = (message.clipboard === true);
+                    updateDesktopButtons();
+                    if (clipboardSyncEnabled) { clipboardSyncTick(); }
+                    return;
+                }
+                if ((message.action == 'clipboard') && (message.status == 'offline')) { updateClipboardStatus('Device is offline. Waiting to reconnect…'); return; }
+                if ((message.action == 'clipboard') && (message.status == 'throttled')) { updateClipboardStatus('Clipboard is busy; retrying automatically…'); return; }
+                if ((message.type == 'getclip') && (typeof message.data == 'string')) {
+                    var remoteDecision = NordbaseClipboard.remoteClipboardDecision({ seeded: clipboardRemoteSeeded, lastRemote: clipboardLastRemote, nextRemote: message.data, force: clipboardForceNextRemoteToLocal });
+                    clipboardRemoteSeeded = true;
+                    clipboardForceNextRemoteToLocal = false;
+                    clipboardLastRemote = message.data;
+                    if (Q('d2clipText')) { Q('d2clipText').value = message.data; }
+                    updateClipboardStatus('Received remote clipboard');
+                    if (clipboardSyncEnabled && remoteDecision.shouldWriteLocal && (message.data != clipboardLastLocal)) {
+                        writeLocalClipboardText(message.data);
+                    }
+                } else if (message.type == 'setclip') {
+                    updateClipboardStatus(message.success === true ? 'Sent to remote clipboard' : 'Clipboard update failed');
+                    if (clipboardPendingPaste) {
+                        clipboardPendingPaste = false;
+                        if (clipboardPendingPasteTimer != null) { clearTimeout(clipboardPendingPasteTimer); clipboardPendingPasteTimer = null; }
+                        if (message.success === true) { sendRemoteClipboardShortcut(86); }
+                    }
+                }
+            };
+            shareControl.onclose = function () {
+                shareControl = null;
+                shareControlReady = false;
+                resetClipboardTransientState(true);
+                updateDesktopButtons();
+                scheduleShareControlReconnect();
+            };
+            shareControl.onerror = function () { shareControlReady = false; };
+        }
+
+        function scheduleShareControlReconnect() {
+            if ((shareControlReconnectTimer != null) || shareIsExpired()) return;
+            shareControlReconnectTimer = setTimeout(function () { shareControlReconnectTimer = null; setupShareControl(); }, 2500);
+        }
+
+        function sendShareClipboard(operation, data) {
+            if (!shareControlReady || (shareControl == null) || (shareControl.readyState != 1)) { updateClipboardStatus('Clipboard channel is reconnecting…'); setupShareControl(); return false; }
+            var message = { action: 'clipboard', operation: operation };
+            if (typeof data == 'string') {
+                message.data = data;
+                if (operation == 'set') { clipboardLastRemote = data; clipboardRemoteSeeded = true; }
+            }
+            shareControl.send(JSON.stringify(message));
+            return true;
+        }
+
+        function updateClipboardStatus(value) {
+            clipboardStatus = value;
+            if (Q('dlgClipStatus')) { QH('dlgClipStatus', EscapeHtml(value)); }
+            if (Q('DeskClip')) { Q('DeskClip').title = value; }
+        }
+
+        function writeLocalClipboardText(text) {
+            function clipboardWriteSucceeded() {
+                clipboardLastLocal = text;
+                updateClipboardStatus('Remote clipboard copied locally');
+            }
+
+            function clipboardWriteFallback() {
+                var active = document.activeElement;
+                var helper = document.createElement('textarea');
+                helper.value = text;
+                helper.setAttribute('readonly', 'readonly');
+                helper.style.position = 'fixed';
+                helper.style.left = '-10000px';
+                document.body.appendChild(helper);
+                helper.select();
+                var copied = false;
+                try { copied = document.execCommand('copy'); } catch (ex) { }
+                document.body.removeChild(helper);
+                try { if ((active != null) && (active.focus != null)) { active.focus(); } } catch (ex) { }
+                if (copied) {
+                    clipboardWriteSucceeded();
+                } else {
+                    updateClipboardStatus('Browser blocked clipboard write. Use Pull from device once to grant access.');
+                }
+            }
+
+            if ((navigator.clipboard != null) && (navigator.clipboard.writeText != null)) {
+                navigator.clipboard.writeText(text).then(clipboardWriteSucceeded).catch(clipboardWriteFallback);
+            } else {
+                clipboardWriteFallback();
+            }
+        }
+
+        function toggleClipboardSync() {
+            setClipboardSyncEnabled(Q('dlgClipSync').checked, true);
+        }
+
+        function setClipboardSyncEnabled(enabled, persist) {
+            clipboardSyncEnabled = (enabled === true);
+            if (clipboardSyncTimer != null) { clearInterval(clipboardSyncTimer); clipboardSyncTimer = null; }
+            if (persist) { putstore('rmmClipboardSync', clipboardSyncEnabled ? '1' : '0'); }
+            if (Q('dlgClipSync')) { Q('dlgClipSync').checked = clipboardSyncEnabled; }
+            if (!clipboardSyncEnabled) { updateClipboardStatus('Automatic sync is off'); return; }
+            updateClipboardStatus('Automatic sync is active. Use Cmd/Ctrl+C and Cmd/Ctrl+V normally.');
+            clipboardSyncTick();
+            clipboardSyncTimer = setInterval(clipboardSyncTick, 1200);
+            probeBackgroundClipboardPermission();
+        }
+
+        function probeBackgroundClipboardPermission() {
+            if ((navigator.clipboard == null) || (navigator.clipboard.readText == null)) return;
+            if ((navigator.permissions == null) || (navigator.permissions.query == null)) return;
+            try {
+                navigator.permissions.query({ name: 'clipboard-read' }).then(function (result) {
+                    clipboardBackgroundReadAllowed = (result.state == 'granted');
+                    result.onchange = function () { clipboardBackgroundReadAllowed = (result.state == 'granted'); };
+                }).catch(function () { });
+            } catch (ex) { }
+        }
+
+        function clipboardSyncTick() {
+            if (!clipboardSyncEnabled || shareIsExpired() || (document.hidden === true) || clipboardPendingPaste) return;
+            if ((viewOnly != 1) && clipboardBackgroundReadAllowed && (navigator.clipboard != null) && (navigator.clipboard.readText != null)) {
+                navigator.clipboard.readText().then(function (text) {
+                    if ((text != clipboardLastLocal) && (text != clipboardLastRemote)) {
+                        clipboardLastLocal = text;
+                        sendShareClipboard('set', text);
+                    } else {
+                        sendShareClipboard('get');
+                    }
+                }).catch(function () { clipboardBackgroundReadAllowed = false; sendShareClipboard('get'); });
+            } else {
+                sendShareClipboard('get');
+            }
+        }
+
+        function isClipboardShortcut(e, keyCode) {
+            return clipboardSyncEnabled && !xxdialogMode && (desktop != null) && (desktop.State == 3) && isInputAllowed() &&
+                (e.keyCode == keyCode) && ((e.ctrlKey === true) || (e.metaKey === true)) && (e.altKey !== true);
+        }
+
+        function stopClipboardShortcutEvent(e) {
+            try { e.preventDefault(); } catch (ex) { }
+            try { e.stopPropagation(); } catch (ex) { }
+        }
+
+        function releaseRemoteClipboardModifier(e) {
+            if ((desktop == null) || (desktop.State != 3)) return;
+            if (e.metaKey === true) { desktop.m.SendKeyMsgKC([[desktop.m.KeyAction.EXUP, 0x5B]]); }
+            if (e.ctrlKey === true) { desktop.m.SendKeyMsgKC([[desktop.m.KeyAction.EXUP, 17]]); }
+        }
+
+        function sendRemoteClipboardShortcut(keyCode) {
+            if ((desktop == null) || (desktop.State != 3) || !isInputAllowed()) return;
+            desktop.m.SendKeyMsgKC(NordbaseClipboard.shortcutSequence(remotePlatform, keyCode, desktop.m.KeyAction));
+        }
+
+        function scheduleRemoteClipboardPull() {
+            for (var i = 0; i < clipboardCopyTimers.length; i++) { clearTimeout(clipboardCopyTimers[i]); }
+            clipboardCopyTimers = [];
+            clipboardForceNextRemoteToLocal = true;
+            clipboardCopyTimers.push(setTimeout(function () { sendShareClipboard('get'); }, 180));
+            clipboardCopyTimers.push(setTimeout(function () { if (clipboardForceNextRemoteToLocal) { sendShareClipboard('get'); } }, 520));
+        }
+
+        function handleAutomaticClipboardCopy(e) {
+            clipboardSuppressedKeyUps[67] = true;
+            stopClipboardShortcutEvent(e);
+            releaseRemoteClipboardModifier(e);
+            sendRemoteClipboardShortcut(67);
+            scheduleRemoteClipboardPull();
+            updateClipboardStatus('Copying from remote device…');
+            return false;
+        }
+
+        function handleAutomaticClipboardPaste(e) {
+            clipboardSuppressedKeyUps[86] = true;
+            releaseRemoteClipboardModifier(e);
+            clipboardAwaitingPasteEvent = true;
+            updateClipboardStatus('Reading local clipboard…');
+            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); }
+            clipboardPasteGestureTimer = setTimeout(function () {
+                clipboardPasteGestureTimer = null;
+                if (!clipboardAwaitingPasteEvent) return;
+                if ((navigator.clipboard == null) || (navigator.clipboard.readText == null)) {
+                    clipboardAwaitingPasteEvent = false;
+                    updateClipboardStatus('Browser did not expose local clipboard text; remote paste used its current clipboard.');
+                    sendRemoteClipboardShortcut(86);
+                    return;
+                }
+                navigator.clipboard.readText().then(function (text) {
+                    if (!clipboardAwaitingPasteEvent) return;
+                    clipboardAwaitingPasteEvent = false;
+                    clipboardBackgroundReadAllowed = true;
+                    commitAutomaticClipboardPaste(text);
+                }).catch(function () {
+                    clipboardAwaitingPasteEvent = false;
+                    updateClipboardStatus('Browser blocked clipboard read. Open Clipboard and use Push to device once.');
+                    sendRemoteClipboardShortcut(86);
+                });
+            }, 30);
+        }
+
+        function handleAutomaticClipboardPasteEvent(e) {
+            if (!clipboardAwaitingPasteEvent || !clipboardSyncEnabled || xxdialogMode || (desktop == null) || (desktop.State != 3) || !isInputAllowed()) return;
+            clipboardAwaitingPasteEvent = false;
+            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); clipboardPasteGestureTimer = null; }
+            stopClipboardShortcutEvent(e);
+            var text = '';
+            try { text = e.clipboardData.getData('text/plain'); } catch (ex) { }
+            clipboardBackgroundReadAllowed = true;
+            commitAutomaticClipboardPaste(text);
+        }
+
+        function commitAutomaticClipboardPaste(text) {
+            if (text.length > 65535) { text = text.substring(0, 65535); }
+            clipboardLastLocal = text;
+            clipboardPendingPaste = true;
+            if (!sendShareClipboard('set', text)) { clipboardPendingPaste = false; sendRemoteClipboardShortcut(86); return; }
+            clipboardPendingPasteTimer = setTimeout(function () {
+                clipboardPendingPasteTimer = null;
+                if (clipboardPendingPaste) { clipboardPendingPaste = false; updateClipboardStatus('Remote clipboard confirmation timed out'); }
+            }, 1800);
+        }
+
+        function resetClipboardTransientState(resetRemoteSeed) {
+            clipboardPendingPaste = false;
+            clipboardAwaitingPasteEvent = false;
+            clipboardForceNextRemoteToLocal = false;
+            clipboardSuppressedKeyUps = {};
+            if (clipboardPendingPasteTimer != null) { clearTimeout(clipboardPendingPasteTimer); clipboardPendingPasteTimer = null; }
+            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); clipboardPasteGestureTimer = null; }
+            for (var i = 0; i < clipboardCopyTimers.length; i++) { clearTimeout(clipboardCopyTimers[i]); }
+            clipboardCopyTimers = [];
+            if (resetRemoteSeed === true) {
+                clipboardRemoteSeeded = false;
+                clipboardLastRemote = null;
+            }
+        }
+
+        function stopRmmRemoteRuntime() {
+            rmmDesktopReconnectEnabled = false;
+            resetClipboardTransientState(false);
+            if (clipboardSyncTimer != null) { clearInterval(clipboardSyncTimer); clipboardSyncTimer = null; }
+            if (shareControlReconnectTimer != null) { clearTimeout(shareControlReconnectTimer); shareControlReconnectTimer = null; }
+            if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
+            if (shareControl != null) {
+                shareControl.onclose = null;
+                try { shareControl.close(); } catch (ex) { }
+                shareControl = null;
+            }
+        }
+
+        function scheduleDesktopReconnect() {
+            if (!rmmDesktopReconnectEnabled || (rmmDesktopReconnectTimer != null) || shareIsExpired() || ((features & 2) == 0)) return;
+            rmmDesktopReconnectTimer = setTimeout(function () {
+                rmmDesktopReconnectTimer = null;
+                if ((desktop == null) && rmmDesktopReconnectEnabled && !shareIsExpired()) { connectDesktop(null, 1); }
+            }, 2500);
         }
 
 
@@ -466,7 +1125,7 @@
             // If the device desktop is already connected in multi-desktop, use that.
             if (desktop == null) {
                 // Device is not already connected, just setup a blank canvas
-                QH('DeskParent', '<canvas id=Desk oncontextmenu="return false" onmousedown=dmousedown(event) onmouseup=dmouseup(event) onmousemove=dmousemove(event)></canvas>');
+                QH('DeskParent', '<canvas id=Desk tabindex="0" aria-label="Remote desktop canvas" oncontextmenu="return false" onmousedown=dmousedown(event) onmouseup=dmouseup(event) onmousemove=dmousemove(event)></canvas>');
 
                 // Setup the mouse wheel
                 Q('Desk').addEventListener('DOMMouseScroll', function (e) { return dmousewheel(e); });
@@ -495,8 +1154,8 @@
             QE('connectbutton1', agentPresent);
             QE('connectbutton1h', intelAmtPresent);
             //QV('DeskClip', agentPresent && ((desktop == null) || (desktop.contype != 2))); // Clipboard not supported on macOS
-            QV('DeskClip', false); // Clipboard not supported on this page
-            QE('DeskClip', deskState == 3);
+            QV('DeskClip', (features & 2) != 0);
+            QE('DeskClip', (deskState == 3) && shareControlReady);
             QE('DeskType', deskState == 3);
             QV('DeskWD', viewOnly != 1);
             QE('DeskWD', deskState == 3);
@@ -531,6 +1190,7 @@
 
         function connectDesktop(e, contype, tsid, consent) {
             if (xxdialogMode) return;
+            if (e != null) { rmmDesktopReconnectEnabled = (contype != 0); }
             if ((e != null) && (e.shiftKey != false) && (contype == 3)) { contype = 1; } // If the shift key is not pressed, don't try to ask for session list.
             QV('p11DeskSessionSelector', false);
             p11clearConsoleMsg();
@@ -739,10 +1399,12 @@
                     if (fullscreen == true) { deskToggleFull(); }
                     webRtcDesktopReset();
                     deskPreferedStickyDisplay = 0;
+                    scheduleDesktopReconnect();
                     break;
                 case 2:
                     break;
                 case 3:
+                    rmmDesktopReconnectEnabled = true;
                     if (desktop && (desktop.serverIsRecording == true)) { QV('deskRecordIcon', true); }
                     desktop.startTime = new Date();
                     if (updateSessionTimer == null) { updateSessionTimer = setInterval(updateSessionTime, 1000); }
@@ -787,7 +1449,7 @@
             if (xxdialogMode) return;
             applyDesktopSettings();
             updateDesktopButtons();
-            setDialogMode(7, "Remote Desktop Settings", 3, showDesktopSettingsChanged);
+            setDialogMode(7, "Nordbase Remote settings", 3, showDesktopSettingsChanged);
         }
 
         function showDesktopSettingsChanged() {
@@ -1032,6 +1694,8 @@
         function ondockeydown(e) {
             setSessionActivity();
             if (!xxdialogMode && desktop && isInputAllowed()) {
+                if (isClipboardShortcut(e, 67)) { return handleAutomaticClipboardCopy(e); }
+                if (isClipboardShortcut(e, 86)) { return handleAutomaticClipboardPaste(e); }
                 // Check what keys we are allows to send
                 /*
                 if (currentNode != null) {
@@ -1048,6 +1712,11 @@
 
         function ondockeyup(e) {
             setSessionActivity();
+            if (clipboardSuppressedKeyUps[e.keyCode] === true) {
+                delete clipboardSuppressedKeyUps[e.keyCode];
+                stopClipboardShortcutEvent(e);
+                return false;
+            }
             if (!xxdialogMode && desktop && isInputAllowed()) {
                 // Check what keys we are allows to send
                 /*
@@ -1117,33 +1786,35 @@
             }
         }
 
-        /*
         // Show clipboard dialog
         function showDeskClip() {
             if (xxdialogMode || desktop == null || desktop.State != 3) return;
             Q('DeskClip').blur();
             var x = '';
-            x += '<input id=dlgClipGet type=button value="Get Clipboard" style=width:120px onclick=showDeskClipGet()>';
-            x += '<input id=dlgClipSet type=button value="Set Clipboard" style=width:120px onclick=showDeskClipSet()>';
-            x += '<div id=dlgClipStatus style="display:inline-block;margin-left:8px" ></div>';
+            x += '<input id=dlgClipGet type=button value="Pull from device" style=width:130px onclick=showDeskClipGet()>';
+            x += '<input id=dlgClipSet type=button value="Push to device" style=width:130px onclick=showDeskClipSet()>';
+            x += '<label style="display:inline-flex;align-items:center;gap:6px;margin-left:10px"><input id=dlgClipSync type=checkbox onclick=toggleClipboardSync()> Automatic sync</label>';
+            x += '<div id=dlgClipStatus style="margin:8px 0" ></div>';
+            x += '<div style="margin:0 0 8px;color:#666">With automatic sync enabled, use Cmd+C/Cmd+V on Mac or Ctrl+C/Ctrl+V on Windows normally. Nordbase maps the shortcut to the remote operating system. Text clipboard is supported; files and images use the Files tab.</div>';
             x += '<textarea id=d2clipText style="width:100%;height:184px;resize:none" maxlength=65535></textarea>';
             x += '<input type=button value="Close" style=width:80px;float:right onclick=dialogclose(0)><div style=height:26px;margin-top:3px><span id=linuxClipWarn style=display:none>' + "Remote clipboard is valid for 60 seconds." + '</span>&nbsp;</div><div></div>';
             setDialogMode(2, "Remote Clipboard", 8, null, x, 'clipboard');
+            Q('dlgClipSync').checked = clipboardSyncEnabled;
+            updateClipboardStatus(shareControlReady ? clipboardStatus : 'Clipboard channel is reconnecting…');
             Q('d2clipText').focus();
         }
 
         function showDeskClipGet() {
             if (desktop == null || desktop.State != 3) return;
-            meshserver.send({ action: 'msg', type: 'getclip', nodeid: currentNode._id });
+            clipboardForceNextRemoteToLocal = true;
+            sendShareClipboard('get');
         }
 
         function showDeskClipSet() {
             if (desktop == null || desktop.State != 3) return;
-            meshserver.send({ action: 'msg', type: 'setclip', nodeid: currentNode._id, data: Q('d2clipText').value });
+            sendShareClipboard('set', Q('d2clipText').value);
             //QV('linuxClipWarn', currentNode && currentNode.agent && (currentNode.agent.id > 4) && (currentNode.agent.id != 21) && (currentNode.agent.id != 22));
         }
-        */
-
         // Send CTRL-ALT-DEL
         function sendCAD() {
             if (xxdialogMode || desktop == null || desktop.State != 3) return;
@@ -2350,7 +3021,7 @@
         function printDate(d) { return d.toLocaleDateString(urlargs.locale); }
         function printTime(d) { return d.toLocaleTimeString(urlargs.locale); }
         function printDateTime(d) { return d.toLocaleString(urlargs.locale); }
-        function printFlexDateTime(d) { if (printDate(new Date()) == printDate(d)) { return format("Expires at {0}", printTime(d)); } else { return format("Expires {0}", printDateTime(d)); } }
+        function printFlexDateTime(d) { if (printDate(new Date()) == printDate(d)) { return format("Session until {0}", printTime(d)); } else { return format("Session until {0}", printDateTime(d)); } }
         function getFileSizeStr(size) { if (typeof size != 'number') { size = 0; } if (size == 1) return "1 byte"; return format("{0} bytes", size); }
         function encodeURIComponentEx(txt) { return encodeURIComponent(txt).replace(/'/g, '%27'); };
         function focusTextBox(x) { setTimeout(function () { Q(x).selectionStart = Q(x).selectionEnd = 65535; Q(x).focus(); }, 0); }

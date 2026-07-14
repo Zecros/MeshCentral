@@ -4468,8 +4468,84 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     var httpsPort = ((obj.args.aliasport == null) ? obj.args.port : obj.args.aliasport); // Use HTTPS alias port is specified
                     parent.debug('web', 'handleSharingRequest: Sending guest sharing page for \"' + c.uid + '\", guest \"' + c.gn + '\".');
                     res.set({ 'Cache-Control': 'no-store' });
-                    render(req, res, getRenderPage('sharing', req, domain), getRenderArgs({ authCookie: authCookie, authRelayCookie: '', domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27'), nodeid: c.nid, serverDnsName: obj.getWebServerName(domain, req), serverRedirPort: args.redirport, serverPublicPort: httpsPort, expire: c.expire, viewOnly: (c.vo == 1) ? 1 : 0, nodeName: encodeURIComponent(node.name).replace(/'/g, '%27'), features: c.p, features2: features2 }, req, domain));
+                    // Nordbase patches the canonical sharing template. Force that template so a
+                    // stale upstream translated/minified copy cannot silently remove security or
+                    // reconnect features from a support session.
+                    req.query.lang = 'en';
+                    req.query.minify = '0';
+                    var remotePlatform = 'other';
+                    if ((node.agent != null) && ([3, 4, 43].indexOf(node.agent.id) >= 0)) { remotePlatform = 'windows'; }
+                    if ((node.agent != null) && ([16, 29, 10005].indexOf(node.agent.id) >= 0)) { remotePlatform = 'macos'; }
+                    render(req, res, getRenderPage('sharing', req, domain), getRenderArgs({ authCookie: authCookie, authRelayCookie: '', domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27'), nodeid: c.nid, serverDnsName: obj.getWebServerName(domain, req), serverRedirPort: args.redirport, serverPublicPort: httpsPort, expire: c.expire, viewOnly: (c.vo == 1) ? 1 : 0, nodeName: encodeURIComponent(node.name).replace(/'/g, '%27'), remotePlatform: remotePlatform, features: c.p, features2: features2 }, req, domain));
                 }
+            });
+        });
+    }
+
+    // Restricted control channel for public device-sharing pages. This deliberately
+    // does not create a MeshUser session: the share cookie is valid for one node and
+    // the only accepted operations are clipboard read/write for that node.
+    function handleShareControlWebSocket(ws, req) {
+        const domain = getDomain(req);
+        const close = function (cause) {
+            try { ws.send(JSON.stringify({ action: 'close', cause: cause })); } catch (ex) { }
+            try { ws.close(); } catch (ex) { }
+        };
+        if ((domain == null) || (obj.CheckWebServerOriginName(domain, req) == false)) { close('invalidorigin'); return; }
+        if ((req.query == null) || (typeof req.query.auth != 'string')) { close('noauth'); return; }
+
+        const c = obj.parent.decodeCookie(req.query.auth, obj.parent.loginCookieEncryptionKey, 9999999999);
+        if (
+            (c == null) || (c.r !== 8) || (c.domainid !== domain.id) ||
+            (typeof c.nid != 'string') || (typeof c.pid != 'string') ||
+            (typeof c.userid != 'string') || (obj.users[c.userid] == null) ||
+            ((c.p & 2) == 0) || ((c.expire != null) && (c.expire <= Date.now()))
+        ) { close('noauth'); return; }
+        if ((c.ip != null) && !checkCookieIp(c.ip, req.clientIp)) { close('invalidip'); return; }
+
+        obj.db.GetAllTypeNodeFiltered([c.nid], domain.id, 'deviceshare', null, function (err, docs) {
+            if (err != null) { close('sharelookup'); return; }
+            var share = null;
+            for (var i = 0; i < docs.length; i++) {
+                if ((docs[i].publicid === c.pid) && ((docs[i].extrakey == null) || (docs[i].extrakey === c.k)) && ((docs[i].p & 2) != 0)) { share = docs[i]; break; }
+            }
+            if (share == null) { close('revoked'); return; }
+            obj.db.Get(c.nid, function (nodeErr, nodes) {
+                if ((nodeErr != null) || (nodes == null) || (nodes.length !== 1)) { close('node'); return; }
+                const node = nodes[0];
+                if ((node.meshid == null) || ((obj.GetNodeRights(c.userid, node.meshid, node._id) & MESHRIGHT_REMOTECONTROL) == 0)) { close('denied'); return; }
+
+                const sessionId = c.userid + '/' + obj.crypto.randomBytes(16).toString('hex');
+                const viewOnly = (c.vo === 1) || (share.viewOnly === true);
+                var messageWindowStartedAt = Date.now();
+                var messageWindowCount = 0;
+                obj.wssessions2[sessionId] = ws;
+                const cleanup = function () { if (obj.wssessions2[sessionId] === ws) { delete obj.wssessions2[sessionId]; } };
+                ws.on('close', cleanup);
+                ws.on('error', cleanup);
+                ws.on('message', function (message) {
+                    if ((typeof message != 'string') && !Buffer.isBuffer(message)) return;
+                    const value = Buffer.isBuffer(message) ? message.toString('utf8') : message;
+                    if (value.length > 70000) { close('toolarge'); return; }
+                    var command;
+                    try { command = JSON.parse(value); } catch (ex) { return; }
+                    if ((command == null) || (command.action !== 'clipboard')) return;
+                    const now = Date.now();
+                    if ((now - messageWindowStartedAt) >= 1000) { messageWindowStartedAt = now; messageWindowCount = 0; }
+                    messageWindowCount++;
+                    if (messageWindowCount > 12) {
+                        try { ws.send(JSON.stringify({ action: 'clipboard', status: 'throttled' })); } catch (ex) { }
+                        return;
+                    }
+                    const agent = obj.wsagents[node._id];
+                    if (agent == null) { try { ws.send(JSON.stringify({ action: 'clipboard', status: 'offline' })); } catch (ex) { } return; }
+                    if (command.operation === 'get') {
+                        try { agent.send(JSON.stringify({ action: 'getClip', sessionid: sessionId, tag: 3 })); } catch (ex) { }
+                    } else if ((command.operation === 'set') && (viewOnly == false) && (typeof command.data == 'string') && (command.data.length <= 65535)) {
+                        try { agent.send(JSON.stringify({ action: 'setClip', sessionid: sessionId, data: command.data })); } catch (ex) { }
+                    }
+                });
+                try { ws.send(JSON.stringify({ action: 'sharecontrol', status: 'ready', clipboard: true, viewOnly: viewOnly })); } catch (ex) { cleanup(); }
             });
         });
     }
@@ -6542,6 +6618,98 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             meshcompanyname = meshcompanyname.split('meshagent').join(domain.agentcustomization.companyname);
         }
 
+        function makeMacAgentAppPath() {
+            return '/Applications/' + meshdisplayname + '.app/Contents/MacOS';
+        }
+
+        function buildMacAgentPostflight() {
+            var bundleId = 'se.nordbase.control.agent';
+            return '#!/bin/bash\n' +
+                'set -e\n\n' +
+                'INSTALL_DIR="/usr/local/mesh_services/' + meshcompanyname + '/' + meshservicename + '"\n' +
+                'APP_DIR="/Applications/' + meshdisplayname + '.app"\n' +
+                'CONTENTS_DIR="$APP_DIR/Contents"\n' +
+                'MACOS_DIR="$CONTENTS_DIR/MacOS"\n' +
+                'RESOURCES_DIR="$CONTENTS_DIR/Resources"\n\n' +
+                'rm -rf "$APP_DIR"\n' +
+                'mkdir -p "$INSTALL_DIR"\n' +
+                'mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"\n' +
+                'cp "$1/Contents/meshagent_osx64.msh" "$MACOS_DIR/' + meshexecutablename + '.msh"\n' +
+                'cp "$1/Contents/meshagent_osx64.msh" "$MACOS_DIR/' + meshexecutablename + 'Core.msh"\n' +
+                'cp "$1/Contents/meshagent_osx64.msh" "$INSTALL_DIR/' + meshexecutablename + '.msh"\n' +
+                'cp "$1/Contents/meshagent_osx64.msh" "$INSTALL_DIR/' + meshexecutablename + 'Core.msh"\n' +
+                'cp "$1/Contents/meshagent_osx64.bin" "$MACOS_DIR/' + meshexecutablename + 'Core"\n' +
+                'cp "$1/Contents/meshagent_osx64.bin" "$INSTALL_DIR/' + meshexecutablename + 'Core"\n' +
+                'cp "$1/Contents/nordbase_agent_launcher.bin" "$MACOS_DIR/' + meshexecutablename + '"\n' +
+                'cp "$1/Contents/meshagent_osx64_LaunchDaemon.plist" "/Library/LaunchDaemons/' + meshservicename + '.plist"\n' +
+                'cp "$1/Contents/meshagent_osx64_LaunchAgent.plist" "/Library/LaunchAgents/' + meshservicename + '.plist"\n' +
+                'cat > "$CONTENTS_DIR/Info.plist" <<\\' + 'PLIST\n' +
+                '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
+                '<plist version="1.0">\n' +
+                '<dict>\n' +
+                '  <key>CFBundleExecutable</key>\n' +
+                '  <string>' + meshexecutablename + '</string>\n' +
+                '  <key>CFBundleIdentifier</key>\n' +
+                '  <string>' + bundleId + '</string>\n' +
+                '  <key>CFBundleName</key>\n' +
+                '  <string>' + meshdisplayname + '</string>\n' +
+                '  <key>CFBundleDisplayName</key>\n' +
+                '  <string>' + meshdisplayname + '</string>\n' +
+                '  <key>CFBundlePackageType</key>\n' +
+                '  <string>APPL</string>\n' +
+                '  <key>CFBundleShortVersionString</key>\n' +
+                '  <string>1.0</string>\n' +
+                '  <key>CFBundleVersion</key>\n' +
+                '  <string>1</string>\n' +
+                '  <key>NSScreenCaptureUsageDescription</key>\n' +
+                '  <string>Nordbase Agent needs screen recording access so support technicians can view the remote desktop.</string>\n' +
+                '  <key>NSSystemAudioUsageDescription</key>\n' +
+                '  <string>Nordbase Agent may request system audio capture when remote support requires it.</string>\n' +
+                '</dict>\n' +
+                '</plist>\n' +
+                'PLIST\n' +
+                'rm -f "$INSTALL_DIR/internal.txt"\n\n' +
+                'chown -R root:wheel "$INSTALL_DIR" "$APP_DIR"\n' +
+                'chown root:wheel "/Library/LaunchDaemons/' + meshservicename + '.plist"\n' +
+                'chown root:wheel "/Library/LaunchAgents/' + meshservicename + '.plist"\n' +
+                'chmod 755 "$INSTALL_DIR" "$APP_DIR" "$CONTENTS_DIR" "$MACOS_DIR" "$RESOURCES_DIR"\n' +
+                'chmod 644 "$INSTALL_DIR/' + meshexecutablename + '.msh" "$INSTALL_DIR/' + meshexecutablename + 'Core.msh"\n' +
+                'chmod 755 "$MACOS_DIR/' + meshexecutablename + '" "$MACOS_DIR/' + meshexecutablename + 'Core" "$INSTALL_DIR/' + meshexecutablename + 'Core"\n' +
+                'if [ -x /usr/bin/codesign ]; then\n' +
+                '  SIGNATURE_TRUSTED=0\n' +
+                "  SIGN_IDENTITY=\"$(/usr/bin/security find-identity -v -p codesigning 2>/dev/null | /usr/bin/grep -E \"Developer ID Application|Apple Development\" | /usr/bin/sed -n 's/.*\"\\([^\"]*\\)\".*/\\1/p' | /usr/bin/head -n 1)\"\n" +
+                '  if [ -n "$SIGN_IDENTITY" ]; then\n' +
+                '    /usr/bin/codesign --force --sign "$SIGN_IDENTITY" "$INSTALL_DIR/' + meshexecutablename + 'Core" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --sign "$SIGN_IDENTITY" "$MACOS_DIR/' + meshexecutablename + 'Core" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --sign "$SIGN_IDENTITY" "$MACOS_DIR/' + meshexecutablename + '" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR" >/dev/null 2>&1 || true\n' +
+                '  fi\n' +
+                '  if ! /usr/bin/codesign --verify --deep "$APP_DIR" >/dev/null 2>&1; then\n' +
+                '    /usr/bin/codesign --force --sign - "$INSTALL_DIR/' + meshexecutablename + 'Core" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --sign - "$MACOS_DIR/' + meshexecutablename + 'Core" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --sign - "$MACOS_DIR/' + meshexecutablename + '" >/dev/null 2>&1 || true\n' +
+                '    /usr/bin/codesign --force --deep --sign - "$APP_DIR" >/dev/null 2>&1 || true\n' +
+                '  fi\n' +
+                '  if /usr/bin/codesign -dv --verbose=2 "$APP_DIR" 2>&1 | /usr/bin/grep -q "^Authority="; then\n' +
+                '    SIGNATURE_TRUSTED=1\n' +
+                '  fi\n' +
+                'else\n' +
+                '  SIGNATURE_TRUSTED=0\n' +
+                'fi\n\n' +
+                '/bin/launchctl unload "/Library/LaunchDaemons/' + meshservicename + '.plist" >/dev/null 2>&1 || true\n' +
+                '/bin/launchctl load "/Library/LaunchDaemons/' + meshservicename + '.plist"\n\n' +
+                'logged_in_user="$(/usr/bin/stat -f %Su /dev/console 2>/dev/null || true)"\n' +
+                'if [ -n "$logged_in_user" ] && [ "$logged_in_user" != "root" ]; then\n' +
+                '  logged_in_uid="$(/usr/bin/id -u "$logged_in_user" 2>/dev/null || true)"\n' +
+                '  if [ -n "$logged_in_uid" ]; then\n' +
+                '    /bin/launchctl asuser "$logged_in_uid" /usr/bin/sudo -u "$logged_in_user" /usr/bin/open -n "$APP_DIR" --args --nordbase-permissions >/dev/null 2>&1 || true\n' +
+                '    /bin/launchctl asuser "$logged_in_uid" /usr/bin/sudo -u "$logged_in_user" /usr/bin/open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility" >/dev/null 2>&1 || true\n' +
+                '    /bin/launchctl asuser "$logged_in_uid" /usr/bin/sudo -u "$logged_in_user" /usr/bin/open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture" >/dev/null 2>&1 || true\n' +
+                '  fi\n' +
+                'fi\n';
+        }
+
         // Set the agent download including the mesh name.
         setContentDispositionHeader(res, 'application/octet-stream', meshfilename, null, 'MeshAgent.zip');
         archive.pipe(res);
@@ -6562,7 +6730,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             readStream.on('data', function (data) { if (readStream.xxdata) { readStream.xxdata += data; } else { readStream.xxdata = data; } });
                             readStream.on('end', function () {
                                 var meshname = mesh.name.split(']').join('').split('[').join(''); // We can't have ']]' in the string since it will terminate the CDATA.
-                                var welcomemsg = 'Welcome to the MeshCentral agent for MacOS\n\nThis installer will install the mesh agent for "' + meshname + '" and allow the administrator to remotely monitor and control this computer over the internet. For more information, go to https://meshcentral.com.\n\nThis software is provided under Apache 2.0 license.\n';
+                                var welcomemsg = 'Welcome to Nordbase Agent for macOS\n\nThis installer will install Nordbase Agent for "' + meshname + '" and allow Nordbase Control to securely monitor and support this computer.\n\nThis package uses MeshCentral agent technology under the Apache 2.0 license.\n';
                                 var installsize = Math.floor((argentInfo.size + meshsettings.length) / 1024);
                                 archive.append(readStream.xxdata.toString().split('###DISPLAYNAME###').join(meshdisplayname).split('###WELCOMEMSG###').join(welcomemsg).split('###INSTALLSIZE###').join(installsize), { name: entry.fileName.replace('MeshAgent.mpkg',meshmpkgname) });
                                 zipfile.readEntry();
@@ -6581,7 +6749,17 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                 readStream.on('end', function () {
                                     var options = { name: entry.fileName.replace('MeshAgent.mpkg',meshmpkgname) };
                                     if (entry.fileName.endsWith('postflight') || entry.fileName.endsWith('Uninstall.command')) { options.mode = 493; }
-                                    archive.append(readStream.xxdata.toString().split('###SERVICENAME###').join(meshservicename).split('###COMPANYNAME###').join(meshcompanyname).split('###EXECUTABLENAME###').join(meshexecutablename), options);
+                                    var entryData = readStream.xxdata.toString();
+                                    if (entry.fileName.endsWith('postflight') || entry.fileName.endsWith('Postflight.sh')) {
+                                        entryData = buildMacAgentPostflight();
+                                    } else {
+                                        entryData = entryData.split('###SERVICENAME###').join(meshservicename).split('###COMPANYNAME###').join(meshcompanyname).split('###EXECUTABLENAME###').join(meshexecutablename);
+                                        if ((entry.fileName.endsWith('LaunchAgent.plist')) || (entry.fileName.endsWith('LaunchDaemon.plist'))) {
+                                            var installPath = '/usr/local/mesh_services/' + meshcompanyname + '/' + meshservicename;
+                                            entryData = entryData.split('<string>' + installPath + '/' + meshexecutablename + '</string>').join('<string>' + makeMacAgentAppPath() + '/' + meshexecutablename + '</string>');
+                                        }
+                                    }
+                                    archive.append(entryData, options);
                                     zipfile.readEntry();
                                 });
                             });
@@ -6599,6 +6777,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             });
             zipfile.on('end', function () {
                 archive.file(argentInfo.path, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.bin'.replace('MeshAgent.mpkg',meshmpkgname) });
+                archive.file(obj.path.join(__dirname, 'agents', 'nordbase', 'NordbaseAgentLauncher'), { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/nordbase_agent_launcher.bin'.replace('MeshAgent.mpkg',meshmpkgname) });
                 archive.append(meshsettings, { name: 'MeshAgent.mpkg/Contents/Packages/internal.pkg/Contents/meshagent_osx64.msh'.replace('MeshAgent.mpkg',meshmpkgname) });
                 archive.finalize();
             });
@@ -7272,6 +7451,9 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                             }
                         });
                     });
+                });
+                obj.app.ws(url + 'sharecontrol.ashx', function (ws, req) {
+                    getWebsocketArgs(ws, req, handleShareControlWebSocket);
                 });
                 obj.app.ws(url + 'devicefile.ashx', function (ws, req) { obj.meshDeviceFileHandler.CreateMeshDeviceFile(obj, ws, null, req, domain); });
                 obj.app.get(url + 'devicefile.ashx', handleDeviceFile);
