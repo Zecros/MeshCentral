@@ -4503,32 +4503,71 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
         ) { close('noauth'); return; }
         if ((c.ip != null) && !checkCookieIp(c.ip, req.clientIp)) { close('invalidip'); return; }
 
-        obj.db.GetAllTypeNodeFiltered([c.nid], domain.id, 'deviceshare', null, function (err, docs) {
-            if (err != null) { close('sharelookup'); return; }
-            var share = null;
-            for (var i = 0; i < docs.length; i++) {
-                if ((docs[i].publicid === c.pid) && ((docs[i].extrakey == null) || (docs[i].extrakey === c.k)) && ((docs[i].p & 2) != 0)) { share = docs[i]; break; }
-            }
-            if (share == null) { close('revoked'); return; }
+        // The share must still exist and be valid. Checked when the channel opens, before every
+        // clipboard operation and every 30 seconds; the channel also closes when the share expires
+        // (Nordbase, security review part 2).
+        const findValidShare = function (callback) {
+            if ((c.expire != null) && (c.expire <= Date.now())) { callback('expired', null); return; }
+            obj.db.GetAllTypeNodeFiltered([c.nid], domain.id, 'deviceshare', null, function (err, docs) {
+                if (err != null) { callback('sharelookup', null); return; }
+                for (var i = 0; i < docs.length; i++) {
+                    const doc = docs[i];
+                    if ((doc.publicid === c.pid) && ((doc.extrakey == null) || (doc.extrakey === c.k)) && ((doc.p & 2) != 0)) {
+                        if ((typeof doc.expireTime == 'number') && (doc.expireTime <= Date.now())) { callback('expired', null); return; }
+                        callback(null, doc);
+                        return;
+                    }
+                }
+                callback('revoked', null);
+            });
+        };
+
+        findValidShare(function (shareError, share) {
+            if (shareError != null) { close(shareError); return; }
             obj.db.Get(c.nid, function (nodeErr, nodes) {
                 if ((nodeErr != null) || (nodes == null) || (nodes.length !== 1)) { close('node'); return; }
                 const node = nodes[0];
                 const shareUser = obj.users[c.userid];
                 const rights = (node.meshid == null) ? 0 : obj.GetNodeRights(c.userid, node.meshid, node._id);
                 if ((shareUser == null) || ((rights & MESHRIGHT_REMOTECONTROL) == 0)) { close('denied'); return; }
+                if (ws.readyState !== 1) return; // closed while the share was looked up: set nothing up
 
                 const sessionId = c.userid + '/' + obj.crypto.randomBytes(16).toString('hex');
                 const viewOnly = (c.vo === 1) || (share.viewOnly === true);
                 var messageWindowStartedAt = Date.now();
                 var messageWindowCount = 0;
+                var expireTimer = null;
+                var recheckTimer = null;
+                var closed = false;
                 obj.wssessions2[sessionId] = ws;
-                const cleanup = function () { if (obj.wssessions2[sessionId] === ws) { delete obj.wssessions2[sessionId]; } };
+                const cleanup = function () {
+                    closed = true;
+                    if (expireTimer != null) { clearTimeout(expireTimer); expireTimer = null; }
+                    if (recheckTimer != null) { clearInterval(recheckTimer); recheckTimer = null; }
+                    if (obj.wssessions2[sessionId] === ws) { delete obj.wssessions2[sessionId]; }
+                };
+                const shutdown = function (cause) { cleanup(); close(cause); };
+                const expireAt = Math.min(
+                    (typeof c.expire == 'number') ? c.expire : Infinity,
+                    (typeof share.expireTime == 'number') ? share.expireTime : Infinity
+                );
+                const setExpireTimer = function () {
+                    if (closed || !isFinite(expireAt)) return;
+                    const left = expireAt - Date.now();
+                    if (left <= 0) { shutdown('expired'); return; }
+                    expireTimer = setTimeout(setExpireTimer, Math.min(left, 0x7FFFFFFF));
+                };
+                setExpireTimer();
+                recheckTimer = setInterval(function () {
+                    findValidShare(function (recheckError) { if ((recheckError != null) && !closed) { shutdown(recheckError); } });
+                }, 30000);
                 ws.on('close', cleanup);
                 ws.on('error', cleanup);
                 ws.on('message', function (message) {
+                    if (closed) return;
                     if ((typeof message != 'string') && !Buffer.isBuffer(message)) return;
                     const value = Buffer.isBuffer(message) ? message.toString('utf8') : message;
-                    if (value.length > 70000) { close('toolarge'); return; }
+                    if (value.length > 70000) { shutdown('toolarge'); return; }
                     var command;
                     try { command = JSON.parse(value); } catch (ex) { return; }
                     if ((command == null) || (command.action !== 'clipboard')) return;
@@ -4539,13 +4578,18 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                         try { ws.send(JSON.stringify({ action: 'clipboard', status: 'throttled' })); } catch (ex) { }
                         return;
                     }
-                    const agent = obj.wsagents[node._id];
-                    if (agent == null) { try { ws.send(JSON.stringify({ action: 'clipboard', status: 'offline' })); } catch (ex) { } return; }
-                    if (command.operation === 'get') {
-                        try { agent.send(JSON.stringify({ action: 'msg', type: 'getclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, tag: 3 })); } catch (ex) { }
-                    } else if ((command.operation === 'set') && (viewOnly == false) && (typeof command.data == 'string') && (command.data.length <= 65535)) {
-                        try { agent.send(JSON.stringify({ action: 'msg', type: 'setclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, data: command.data })); } catch (ex) { }
-                    }
+                    // Check the share again right before touching the customer's clipboard.
+                    findValidShare(function (checkError) {
+                        if (closed) return;
+                        if (checkError != null) { shutdown(checkError); return; }
+                        const agent = obj.wsagents[node._id];
+                        if (agent == null) { try { ws.send(JSON.stringify({ action: 'clipboard', status: 'offline' })); } catch (ex) { } return; }
+                        if (command.operation === 'get') {
+                            try { agent.send(JSON.stringify({ action: 'msg', type: 'getclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, tag: 3 })); } catch (ex) { }
+                        } else if ((command.operation === 'set') && (viewOnly == false) && (typeof command.data == 'string') && (command.data.length <= 65535)) {
+                            try { agent.send(JSON.stringify({ action: 'msg', type: 'setclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, data: command.data })); } catch (ex) { }
+                        }
+                    });
                 });
                 try { ws.send(JSON.stringify({ action: 'sharecontrol', status: 'ready', clipboard: true, viewOnly: viewOnly })); } catch (ex) { cleanup(); }
             });

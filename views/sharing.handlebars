@@ -663,20 +663,13 @@
         var shareControl = null;
         var shareControlReady = false;
         var shareControlReconnectTimer = null;
-        var clipboardSyncTimer = null;
-        var clipboardSyncEnabled = true;
-        var clipboardLastLocal = null;
-        var clipboardLastRemote = null;
-        var clipboardRemoteSeeded = false;
-        var clipboardForceNextRemoteToLocal = false;
-        var clipboardBackgroundReadAllowed = false;
-        var clipboardPendingPaste = false;
-        var clipboardPendingPasteTimer = null;
-        var clipboardAwaitingPasteEvent = false;
-        var clipboardPasteGestureTimer = null;
-        var clipboardCopyTimers = [];
-        var clipboardSuppressedKeyUps = {};
-        var clipboardStatus = 'Automatic sync is starting…';
+        // Clipboard (Nordbase, security review part 2): never automatic. Text moves only when the
+        // operator presses "Pull from device" or "Push to device", only in the window that has focus,
+        // and the channel is only open while the desktop session is connected and the share is valid.
+        var clipboardManualGetPending = false;
+        var clipboardManualGetTimer = null;
+        var shareExpiryTimer = null;
+        var clipboardStatus = 'Clipboard moves only when you press Pull or Push.';
         var rmmDesktopReconnectTimer = null;
         var rmmDesktopConnectWatchdogTimer = null;
         var rmmDesktopReconnectEnabled = true;
@@ -721,13 +714,11 @@
             document.onkeypress = ondockeypress;
             document.onkeydown = ondockeydown;
             document.onkeyup = ondockeyup;
-            document.addEventListener('paste', handleAutomaticClipboardPasteEvent, true);
             window.addEventListener('beforeunload', stopRmmRemoteRuntime);
             setupDesktop();
             setupTerminal();
             setupFiles();
-            setupShareControl();
-            setClipboardSyncEnabled(getstore('rmmClipboardSync', '1') !== '0', false);
+            scheduleShareExpiryClose();
 
             // Set the file editor
             d4EditWrapVal = Number(getstore('editorWrap', 0));
@@ -790,7 +781,8 @@
         function shareIsExpired() { return (expire != '') && (parseInt(expire) <= Date.now()); }
 
         function setupShareControl() {
-            if (((features & 2) == 0) || shareIsExpired()) return;
+            // Only for a connected desktop session of a share that has not expired.
+            if (((features & 2) == 0) || shareIsExpired() || (desktop == null) || (desktop.State != 3)) return;
             if ((shareControl != null) && ((shareControl.readyState == 0) || (shareControl.readyState == 1))) return;
             var protocol = (window.location.protocol == 'https:') ? 'wss://' : 'ws://';
             try {
@@ -803,34 +795,25 @@
                 if ((message.action == 'sharecontrol') && (message.status == 'ready')) {
                     shareControlReady = (message.clipboard === true);
                     updateDesktopButtons();
-                    if (clipboardSyncEnabled) { clipboardSyncTick(); }
                     return;
                 }
-                if ((message.action == 'clipboard') && (message.status == 'offline')) { updateClipboardStatus('Device is offline. Waiting to reconnect…'); return; }
-                if ((message.action == 'clipboard') && (message.status == 'throttled')) { updateClipboardStatus('Clipboard is busy; retrying automatically…'); return; }
+                if (message.action == 'close') { closeShareControl(); updateClipboardStatus('Clipboard channel closed (' + String(message.cause || 'closed').substring(0, 40) + ')'); return; }
+                if ((message.action == 'clipboard') && (message.status == 'offline')) { updateClipboardStatus('Device is offline.'); return; }
+                if ((message.action == 'clipboard') && (message.status == 'throttled')) { updateClipboardStatus('Clipboard is busy; press again in a moment.'); return; }
                 if ((message.type == 'getclip') && (typeof message.data == 'string')) {
-                    var remoteDecision = NordbaseClipboard.remoteClipboardDecision({ seeded: clipboardRemoteSeeded, lastRemote: clipboardLastRemote, nextRemote: message.data, force: clipboardForceNextRemoteToLocal });
-                    clipboardRemoteSeeded = true;
-                    clipboardForceNextRemoteToLocal = false;
-                    clipboardLastRemote = message.data;
+                    // Only an answer to the operator's own "Pull from device" is used; anything else is ignored.
+                    if (!NordbaseClipboard.acceptRemoteClipboard({ manualGetPending: clipboardManualGetPending })) return;
+                    clearManualGet();
                     if (Q('d2clipText')) { Q('d2clipText').value = message.data; }
-                    updateClipboardStatus('Received remote clipboard');
-                    if (clipboardSyncEnabled && remoteDecision.shouldWriteLocal && (message.data != clipboardLastLocal)) {
-                        writeLocalClipboardText(message.data);
-                    }
+                    writeLocalClipboardText(message.data);
                 } else if (message.type == 'setclip') {
                     updateClipboardStatus(message.success === true ? 'Sent to remote clipboard' : 'Clipboard update failed');
-                    if (clipboardPendingPaste) {
-                        clipboardPendingPaste = false;
-                        if (clipboardPendingPasteTimer != null) { clearTimeout(clipboardPendingPasteTimer); clipboardPendingPasteTimer = null; }
-                        if (message.success === true) { sendRemoteClipboardShortcut(86); }
-                    }
                 }
             };
             shareControl.onclose = function () {
                 shareControl = null;
                 shareControlReady = false;
-                resetClipboardTransientState(true);
+                clearManualGet();
                 updateDesktopButtons();
                 scheduleShareControlReconnect();
             };
@@ -838,16 +821,52 @@
         }
 
         function scheduleShareControlReconnect() {
-            if ((shareControlReconnectTimer != null) || shareIsExpired()) return;
+            if ((shareControlReconnectTimer != null) || shareIsExpired() || (desktop == null) || (desktop.State != 3)) return;
             shareControlReconnectTimer = setTimeout(function () { shareControlReconnectTimer = null; setupShareControl(); }, 2500);
         }
 
+        function closeShareControl() {
+            if (shareControlReconnectTimer != null) { clearTimeout(shareControlReconnectTimer); shareControlReconnectTimer = null; }
+            clearManualGet();
+            shareControlReady = false;
+            if (shareControl != null) {
+                shareControl.onclose = null;
+                try { shareControl.close(); } catch (ex) { }
+                shareControl = null;
+            }
+            updateDesktopButtons();
+        }
+
+        // When the share link expires, the clipboard channel closes (the server closes it too).
+        function scheduleShareExpiryClose() {
+            if (shareExpiryTimer != null) { clearTimeout(shareExpiryTimer); shareExpiryTimer = null; }
+            if (expire == '') return;
+            var left = parseInt(expire) - Date.now();
+            if (left <= 0) { closeShareControl(); return; }
+            shareExpiryTimer = setTimeout(scheduleShareExpiryClose, Math.min(left, 0x7FFFFFFF));
+        }
+
+        function clearManualGet() {
+            clipboardManualGetPending = false;
+            if (clipboardManualGetTimer != null) { clearTimeout(clipboardManualGetTimer); clipboardManualGetTimer = null; }
+        }
+
+        function clipboardActionAllowed() {
+            return NordbaseClipboard.manualClipboardAllowed({
+                hasFocus: (typeof document.hasFocus == 'function') ? document.hasFocus() : false,
+                hidden: document.hidden === true,
+                expired: shareIsExpired(),
+                desktopConnected: (desktop != null) && (desktop.State == 3),
+                channelReady: shareControlReady && (shareControl != null) && (shareControl.readyState == 1)
+            });
+        }
+
         function sendShareClipboard(operation, data) {
-            if (!shareControlReady || (shareControl == null) || (shareControl.readyState != 1)) { updateClipboardStatus('Clipboard channel is reconnecting…'); setupShareControl(); return false; }
+            if (!clipboardActionAllowed()) { updateClipboardStatus('Clipboard works only in the focused window with a connected session.'); return false; }
             var message = { action: 'clipboard', operation: operation };
-            if (typeof data == 'string') {
-                message.data = data;
-                if (operation == 'set') { clipboardLastRemote = data; clipboardRemoteSeeded = true; }
+            if (operation == 'set') {
+                if (viewOnly == 1) return false;
+                message.data = String(data || '').substring(0, 65535);
             }
             shareControl.send(JSON.stringify(message));
             return true;
@@ -861,30 +880,11 @@
 
         function writeLocalClipboardText(text) {
             function clipboardWriteSucceeded() {
-                clipboardLastLocal = text;
                 updateClipboardStatus('Remote clipboard copied locally');
             }
-
             function clipboardWriteFallback() {
-                var active = document.activeElement;
-                var helper = document.createElement('textarea');
-                helper.value = text;
-                helper.setAttribute('readonly', 'readonly');
-                helper.style.position = 'fixed';
-                helper.style.left = '-10000px';
-                document.body.appendChild(helper);
-                helper.select();
-                var copied = false;
-                try { copied = document.execCommand('copy'); } catch (ex) { }
-                document.body.removeChild(helper);
-                try { if ((active != null) && (active.focus != null)) { active.focus(); } } catch (ex) { }
-                if (copied) {
-                    clipboardWriteSucceeded();
-                } else {
-                    updateClipboardStatus('Browser blocked clipboard write. Use Pull from device once to grant access.');
-                }
+                updateClipboardStatus('Received. The browser blocked writing your clipboard; copy the text from the box.');
             }
-
             if ((navigator.clipboard != null) && (navigator.clipboard.writeText != null)) {
                 navigator.clipboard.writeText(text).then(clipboardWriteSucceeded).catch(clipboardWriteFallback);
             } else {
@@ -892,165 +892,12 @@
             }
         }
 
-        function toggleClipboardSync() {
-            setClipboardSyncEnabled(Q('dlgClipSync').checked, true);
-        }
-
-        function setClipboardSyncEnabled(enabled, persist) {
-            clipboardSyncEnabled = (enabled === true);
-            if (clipboardSyncTimer != null) { clearInterval(clipboardSyncTimer); clipboardSyncTimer = null; }
-            if (persist) { putstore('rmmClipboardSync', clipboardSyncEnabled ? '1' : '0'); }
-            if (Q('dlgClipSync')) { Q('dlgClipSync').checked = clipboardSyncEnabled; }
-            if (!clipboardSyncEnabled) { updateClipboardStatus('Automatic sync is off'); return; }
-            updateClipboardStatus('Automatic sync is active. Use Cmd/Ctrl+C and Cmd/Ctrl+V normally.');
-            clipboardSyncTick();
-            clipboardSyncTimer = setInterval(clipboardSyncTick, 1200);
-            probeBackgroundClipboardPermission();
-        }
-
-        function probeBackgroundClipboardPermission() {
-            if ((navigator.clipboard == null) || (navigator.clipboard.readText == null)) return;
-            if ((navigator.permissions == null) || (navigator.permissions.query == null)) return;
-            try {
-                navigator.permissions.query({ name: 'clipboard-read' }).then(function (result) {
-                    clipboardBackgroundReadAllowed = (result.state == 'granted');
-                    result.onchange = function () { clipboardBackgroundReadAllowed = (result.state == 'granted'); };
-                }).catch(function () { });
-            } catch (ex) { }
-        }
-
-        function clipboardSyncTick() {
-            if (!clipboardSyncEnabled || shareIsExpired() || (document.hidden === true) || clipboardPendingPaste) return;
-            if ((viewOnly != 1) && clipboardBackgroundReadAllowed && (navigator.clipboard != null) && (navigator.clipboard.readText != null)) {
-                navigator.clipboard.readText().then(function (text) {
-                    if ((text != clipboardLastLocal) && (text != clipboardLastRemote)) {
-                        clipboardLastLocal = text;
-                        sendShareClipboard('set', text);
-                    } else {
-                        sendShareClipboard('get');
-                    }
-                }).catch(function () { clipboardBackgroundReadAllowed = false; sendShareClipboard('get'); });
-            } else {
-                sendShareClipboard('get');
-            }
-        }
-
-        function isClipboardShortcut(e, keyCode) {
-            return clipboardSyncEnabled && !xxdialogMode && (desktop != null) && (desktop.State == 3) && isInputAllowed() &&
-                (e.keyCode == keyCode) && ((e.ctrlKey === true) || (e.metaKey === true)) && (e.altKey !== true);
-        }
-
-        function stopClipboardShortcutEvent(e) {
-            try { e.preventDefault(); } catch (ex) { }
-            try { e.stopPropagation(); } catch (ex) { }
-        }
-
-        function releaseRemoteClipboardModifier(e) {
-            if ((desktop == null) || (desktop.State != 3)) return;
-            if (e.metaKey === true) { desktop.m.SendKeyMsgKC([[desktop.m.KeyAction.EXUP, 0x5B]]); }
-            if (e.ctrlKey === true) { desktop.m.SendKeyMsgKC([[desktop.m.KeyAction.EXUP, 17]]); }
-        }
-
-        function sendRemoteClipboardShortcut(keyCode) {
-            if ((desktop == null) || (desktop.State != 3) || !isInputAllowed()) return;
-            desktop.m.SendKeyMsgKC(NordbaseClipboard.shortcutSequence(remotePlatform, keyCode, desktop.m.KeyAction));
-        }
-
-        function scheduleRemoteClipboardPull() {
-            for (var i = 0; i < clipboardCopyTimers.length; i++) { clearTimeout(clipboardCopyTimers[i]); }
-            clipboardCopyTimers = [];
-            clipboardForceNextRemoteToLocal = true;
-            clipboardCopyTimers.push(setTimeout(function () { sendShareClipboard('get'); }, 180));
-            clipboardCopyTimers.push(setTimeout(function () { if (clipboardForceNextRemoteToLocal) { sendShareClipboard('get'); } }, 520));
-        }
-
-        function handleAutomaticClipboardCopy(e) {
-            clipboardSuppressedKeyUps[67] = true;
-            stopClipboardShortcutEvent(e);
-            releaseRemoteClipboardModifier(e);
-            sendRemoteClipboardShortcut(67);
-            scheduleRemoteClipboardPull();
-            updateClipboardStatus('Copying from remote device…');
-            return false;
-        }
-
-        function handleAutomaticClipboardPaste(e) {
-            clipboardSuppressedKeyUps[86] = true;
-            releaseRemoteClipboardModifier(e);
-            clipboardAwaitingPasteEvent = true;
-            updateClipboardStatus('Reading local clipboard…');
-            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); }
-            clipboardPasteGestureTimer = setTimeout(function () {
-                clipboardPasteGestureTimer = null;
-                if (!clipboardAwaitingPasteEvent) return;
-                if ((navigator.clipboard == null) || (navigator.clipboard.readText == null)) {
-                    clipboardAwaitingPasteEvent = false;
-                    updateClipboardStatus('Browser did not expose local clipboard text; remote paste used its current clipboard.');
-                    sendRemoteClipboardShortcut(86);
-                    return;
-                }
-                navigator.clipboard.readText().then(function (text) {
-                    if (!clipboardAwaitingPasteEvent) return;
-                    clipboardAwaitingPasteEvent = false;
-                    clipboardBackgroundReadAllowed = true;
-                    commitAutomaticClipboardPaste(text);
-                }).catch(function () {
-                    clipboardAwaitingPasteEvent = false;
-                    updateClipboardStatus('Browser blocked clipboard read. Open Clipboard and use Push to device once.');
-                    sendRemoteClipboardShortcut(86);
-                });
-            }, 30);
-        }
-
-        function handleAutomaticClipboardPasteEvent(e) {
-            if (!clipboardAwaitingPasteEvent || !clipboardSyncEnabled || xxdialogMode || (desktop == null) || (desktop.State != 3) || !isInputAllowed()) return;
-            clipboardAwaitingPasteEvent = false;
-            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); clipboardPasteGestureTimer = null; }
-            stopClipboardShortcutEvent(e);
-            var text = '';
-            try { text = e.clipboardData.getData('text/plain'); } catch (ex) { }
-            clipboardBackgroundReadAllowed = true;
-            commitAutomaticClipboardPaste(text);
-        }
-
-        function commitAutomaticClipboardPaste(text) {
-            if (text.length > 65535) { text = text.substring(0, 65535); }
-            clipboardLastLocal = text;
-            clipboardPendingPaste = true;
-            if (!sendShareClipboard('set', text)) { clipboardPendingPaste = false; sendRemoteClipboardShortcut(86); return; }
-            clipboardPendingPasteTimer = setTimeout(function () {
-                clipboardPendingPasteTimer = null;
-                if (clipboardPendingPaste) { clipboardPendingPaste = false; updateClipboardStatus('Remote clipboard confirmation timed out'); }
-            }, 1800);
-        }
-
-        function resetClipboardTransientState(resetRemoteSeed) {
-            clipboardPendingPaste = false;
-            clipboardAwaitingPasteEvent = false;
-            clipboardForceNextRemoteToLocal = false;
-            clipboardSuppressedKeyUps = {};
-            if (clipboardPendingPasteTimer != null) { clearTimeout(clipboardPendingPasteTimer); clipboardPendingPasteTimer = null; }
-            if (clipboardPasteGestureTimer != null) { clearTimeout(clipboardPasteGestureTimer); clipboardPasteGestureTimer = null; }
-            for (var i = 0; i < clipboardCopyTimers.length; i++) { clearTimeout(clipboardCopyTimers[i]); }
-            clipboardCopyTimers = [];
-            if (resetRemoteSeed === true) {
-                clipboardRemoteSeeded = false;
-                clipboardLastRemote = null;
-            }
-        }
-
         function stopRmmRemoteRuntime() {
             rmmDesktopReconnectEnabled = false;
-            resetClipboardTransientState(false);
-            if (clipboardSyncTimer != null) { clearInterval(clipboardSyncTimer); clipboardSyncTimer = null; }
-            if (shareControlReconnectTimer != null) { clearTimeout(shareControlReconnectTimer); shareControlReconnectTimer = null; }
+            if (shareExpiryTimer != null) { clearTimeout(shareExpiryTimer); shareExpiryTimer = null; }
             if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
             if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); rmmDesktopConnectWatchdogTimer = null; }
-            if (shareControl != null) {
-                shareControl.onclose = null;
-                try { shareControl.close(); } catch (ex) { }
-                shareControl = null;
-            }
+            closeShareControl();
         }
 
         function scheduleDesktopReconnect() {
@@ -1419,6 +1266,7 @@
                     if (fullscreen == true) { deskToggleFull(); }
                     webRtcDesktopReset();
                     deskPreferedStickyDisplay = 0;
+                    closeShareControl(); // the clipboard channel ends with the desktop session
                     scheduleDesktopReconnect();
                     break;
                 case 2:
@@ -1429,6 +1277,7 @@
                     if (desktop && (desktop.serverIsRecording == true)) { QV('deskRecordIcon', true); }
                     desktop.startTime = new Date();
                     if (updateSessionTimer == null) { updateSessionTimer = setInterval(updateSessionTime, 1000); }
+                    setupShareControl();
                     break;
                 default:
                     //console.log('Unknown onDesktopStateChange state', state);
@@ -1715,8 +1564,6 @@
         function ondockeydown(e) {
             setSessionActivity();
             if (!xxdialogMode && desktop && isInputAllowed()) {
-                if (isClipboardShortcut(e, 67)) { return handleAutomaticClipboardCopy(e); }
-                if (isClipboardShortcut(e, 86)) { return handleAutomaticClipboardPaste(e); }
                 // Check what keys we are allows to send
                 /*
                 if (currentNode != null) {
@@ -1733,11 +1580,6 @@
 
         function ondockeyup(e) {
             setSessionActivity();
-            if (clipboardSuppressedKeyUps[e.keyCode] === true) {
-                delete clipboardSuppressedKeyUps[e.keyCode];
-                stopClipboardShortcutEvent(e);
-                return false;
-            }
             if (!xxdialogMode && desktop && isInputAllowed()) {
                 // Check what keys we are allows to send
                 /*
@@ -1813,27 +1655,28 @@
             Q('DeskClip').blur();
             var x = '';
             x += '<input id=dlgClipGet type=button value="Pull from device" style=width:130px onclick=showDeskClipGet()>';
-            x += '<input id=dlgClipSet type=button value="Push to device" style=width:130px onclick=showDeskClipSet()>';
-            x += '<label style="display:inline-flex;align-items:center;gap:6px;margin-left:10px"><input id=dlgClipSync type=checkbox onclick=toggleClipboardSync()> Automatic sync</label>';
+            if (viewOnly != 1) { x += '<input id=dlgClipSet type=button value="Push to device" style=width:130px onclick=showDeskClipSet()>'; }
             x += '<div id=dlgClipStatus style="margin:8px 0" ></div>';
-            x += '<div style="margin:0 0 8px;color:#666">With automatic sync enabled, use Cmd+C/Cmd+V on Mac or Ctrl+C/Ctrl+V on Windows normally. Nordbase maps the shortcut to the remote operating system. Text clipboard is supported; files and images use the Files tab.</div>';
+            x += '<div style="margin:0 0 8px;color:#666">The clipboard never syncs by itself. Pull copies the device clipboard here; Push sends the text in the box to the device. Text only; files use the Files tab.</div>';
             x += '<textarea id=d2clipText style="width:100%;height:184px;resize:none" maxlength=65535></textarea>';
             x += '<input type=button value="Close" style=width:80px;float:right onclick=dialogclose(0)><div style=height:26px;margin-top:3px><span id=linuxClipWarn style=display:none>' + "Remote clipboard is valid for 60 seconds." + '</span>&nbsp;</div><div></div>';
             setDialogMode(2, "Remote Clipboard", 8, null, x, 'clipboard');
-            Q('dlgClipSync').checked = clipboardSyncEnabled;
-            updateClipboardStatus(shareControlReady ? clipboardStatus : 'Clipboard channel is reconnecting…');
+            updateClipboardStatus(shareControlReady ? clipboardStatus : 'Clipboard channel is connecting…');
             Q('d2clipText').focus();
         }
 
         function showDeskClipGet() {
             if (desktop == null || desktop.State != 3) return;
-            clipboardForceNextRemoteToLocal = true;
-            sendShareClipboard('get');
+            clearManualGet();
+            if (!sendShareClipboard('get')) return;
+            clipboardManualGetPending = true;
+            clipboardManualGetTimer = setTimeout(function () { clipboardManualGetTimer = null; if (clipboardManualGetPending) { clipboardManualGetPending = false; updateClipboardStatus('No answer from the device'); } }, 5000);
+            updateClipboardStatus('Reading the device clipboard…');
         }
 
         function showDeskClipSet() {
             if (desktop == null || desktop.State != 3) return;
-            sendShareClipboard('set', Q('d2clipText').value);
+            if (sendShareClipboard('set', Q('d2clipText').value)) { updateClipboardStatus('Sending to the device…'); }
             //QV('linuxClipWarn', currentNode && currentNode.agent && (currentNode.agent.id > 4) && (currentNode.agent.id != 21) && (currentNode.agent.id != 22));
         }
         // Send CTRL-ALT-DEL
