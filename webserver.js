@@ -4513,7 +4513,9 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             obj.db.Get(c.nid, function (nodeErr, nodes) {
                 if ((nodeErr != null) || (nodes == null) || (nodes.length !== 1)) { close('node'); return; }
                 const node = nodes[0];
-                if ((node.meshid == null) || ((obj.GetNodeRights(c.userid, node.meshid, node._id) & MESHRIGHT_REMOTECONTROL) == 0)) { close('denied'); return; }
+                const shareUser = obj.users[c.userid];
+                const rights = (node.meshid == null) ? 0 : obj.GetNodeRights(c.userid, node.meshid, node._id);
+                if ((shareUser == null) || ((rights & MESHRIGHT_REMOTECONTROL) == 0)) { close('denied'); return; }
 
                 const sessionId = c.userid + '/' + obj.crypto.randomBytes(16).toString('hex');
                 const viewOnly = (c.vo === 1) || (share.viewOnly === true);
@@ -4540,9 +4542,9 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     const agent = obj.wsagents[node._id];
                     if (agent == null) { try { ws.send(JSON.stringify({ action: 'clipboard', status: 'offline' })); } catch (ex) { } return; }
                     if (command.operation === 'get') {
-                        try { agent.send(JSON.stringify({ action: 'getClip', sessionid: sessionId, tag: 3 })); } catch (ex) { }
+                        try { agent.send(JSON.stringify({ action: 'msg', type: 'getclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, tag: 3 })); } catch (ex) { }
                     } else if ((command.operation === 'set') && (viewOnly == false) && (typeof command.data == 'string') && (command.data.length <= 65535)) {
-                        try { agent.send(JSON.stringify({ action: 'setClip', sessionid: sessionId, data: command.data })); } catch (ex) { }
+                        try { agent.send(JSON.stringify({ action: 'msg', type: 'setclip', sessionid: sessionId, rights: rights, consent: 0, username: shareUser.name, realname: shareUser.realname, userid: shareUser._id, remoteaddr: req.clientIp, data: command.data })); } catch (ex) { }
                     }
                 });
                 try { ws.send(JSON.stringify({ action: 'sharecontrol', status: 'ready', clipboard: true, viewOnly: viewOnly })); } catch (ex) { cleanup(); }

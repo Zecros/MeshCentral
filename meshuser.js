@@ -3128,7 +3128,11 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                                         else if (command.type === 0) { command.type = 3; commandsOk = true; } // Set the default type of this agent
                                     }
                                     if (commandsOk == true) {
-                                        var theCommand = { action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser, reply: command.reply, responseid: command.responseid };
+                                        // The agent returns command output to the originating web socket by
+                                        // echoing this session id. Without it, reply=true commands execute on
+                                        // the endpoint but their output is broadcast without a routable target,
+                                        // leaving meshctrl (and Nordbase Control) waiting until timeout.
+                                        var theCommand = { action: 'runcommands', type: command.type, cmds: command.cmds, runAsUser: command.runAsUser, reply: command.reply, responseid: command.responseid, sessionid: ws.sessionId };
                                         var agent = parent.wsagents[node._id];
                                         if ((agent != null) && (agent.authenticated == 2) && (agent.agentInfo != null)) {
                                             // Send the commands to the agent

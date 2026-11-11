@@ -678,6 +678,7 @@
         var clipboardSuppressedKeyUps = {};
         var clipboardStatus = 'Automatic sync is starting…';
         var rmmDesktopReconnectTimer = null;
+        var rmmDesktopConnectWatchdogTimer = null;
         var rmmDesktopReconnectEnabled = true;
         var StatusStrs = ["Waiting", "Connecting", "Preparing", "Connected", "Hardware connected"];
         var nodeName = decodeURIComponent('{{{nodeName}}}');
@@ -1044,6 +1045,7 @@
             if (clipboardSyncTimer != null) { clearInterval(clipboardSyncTimer); clipboardSyncTimer = null; }
             if (shareControlReconnectTimer != null) { clearTimeout(shareControlReconnectTimer); shareControlReconnectTimer = null; }
             if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
+            if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); rmmDesktopConnectWatchdogTimer = null; }
             if (shareControl != null) {
                 shareControl.onclose = null;
                 try { shareControl.close(); } catch (ex) { }
@@ -1057,6 +1059,21 @@
                 rmmDesktopReconnectTimer = null;
                 if ((desktop == null) && rmmDesktopReconnectEnabled && !shareIsExpired()) { connectDesktop(null, 1); }
             }, 2500);
+        }
+
+        function armDesktopConnectWatchdog() {
+            if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); }
+            rmmDesktopConnectWatchdogTimer = setTimeout(function () {
+                rmmDesktopConnectWatchdogTimer = null;
+                if ((desktop == null) || (desktop.State == 3) || !rmmDesktopReconnectEnabled || shareIsExpired()) return;
+                var stalledDesktop = desktop;
+                desktop = null;
+                stalledDesktop.onStateChanged = null;
+                try { stalledDesktop.Stop(); } catch (ex) { }
+                QH('deskstatus', 'Waiting');
+                updateDesktopButtons();
+                scheduleDesktopReconnect();
+            }, 15000);
         }
 
 
@@ -1279,6 +1296,7 @@
                         }
                     };
                     desktop.Start(null, 16994, '*', '*', 0);
+                    armDesktopConnectWatchdog();
                     desktop.contype = 2;
                 } else if ((contype == null) || (contype == 1) || (contype == 3)) {
                     // Setup the Mesh Agent remote desktop
@@ -1309,6 +1327,7 @@
                     desktop.m.onDisplayinfo = deskDisplayInfo;
                     desktop.m.onScreenSizeChange = deskAdjust;
                     desktop.Start(null);
+                    armDesktopConnectWatchdog();
                     desktop.latency.callback = function (ms) { /* console.log('latency', ms); */ updateSessionTime(); };
                     desktop.contype = 1;
                 }
@@ -1387,6 +1406,7 @@
             QH('deskstatus', str);
             switch (state) {
                 case 0:
+                    if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); rmmDesktopConnectWatchdogTimer = null; }
                     // Stop recording
                     if (desktop.m.recordedData != null) { deskRecordSession(); }
 
@@ -1404,6 +1424,7 @@
                 case 2:
                     break;
                 case 3:
+                    if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); rmmDesktopConnectWatchdogTimer = null; }
                     rmmDesktopReconnectEnabled = true;
                     if (desktop && (desktop.serverIsRecording == true)) { QV('deskRecordIcon', true); }
                     desktop.startTime = new Date();
