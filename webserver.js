@@ -4473,10 +4473,15 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                     // reconnect features from a support session.
                     req.query.lang = 'en';
                     req.query.minify = '0';
+                    // Nordbase remote desktop step 2: tell the share page whether WebRTC (direct path) is allowed
+                    // (settings.webRTC) and which STUN/TURN servers to use (settings.webrtcConfig). Without these
+                    // the page stays on the relay. Signalling still goes through this share's own relay only.
+                    var shareWebRtc = (obj.args.webrtc == true) ? 1 : 0, shareWebRtcConfig = '';
+                    if (shareWebRtc && obj.parent.config.settings && obj.parent.config.settings.webrtcconfig && (typeof obj.parent.config.settings.webrtcconfig == 'object')) { shareWebRtcConfig = encodeURIComponent(JSON.stringify(obj.parent.config.settings.webrtcconfig)).replace(/'/g, '%27'); }
                     var remotePlatform = 'other';
                     if ((node.agent != null) && ([3, 4, 43].indexOf(node.agent.id) >= 0)) { remotePlatform = 'windows'; }
                     if ((node.agent != null) && ([16, 29, 10005].indexOf(node.agent.id) >= 0)) { remotePlatform = 'macos'; }
-                    render(req, res, getRenderPage('sharing', req, domain), getRenderArgs({ authCookie: authCookie, authRelayCookie: '', domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27'), nodeid: c.nid, serverDnsName: obj.getWebServerName(domain, req), serverRedirPort: args.redirport, serverPublicPort: httpsPort, expire: c.expire, viewOnly: (c.vo == 1) ? 1 : 0, nodeName: encodeURIComponent(node.name).replace(/'/g, '%27'), remotePlatform: remotePlatform, features: c.p, features2: features2 }, req, domain));
+                    render(req, res, getRenderPage('sharing', req, domain), getRenderArgs({ authCookie: authCookie, authRelayCookie: '', domainurl: encodeURIComponent(domain.url).replace(/'/g, '%27'), nodeid: c.nid, serverDnsName: obj.getWebServerName(domain, req), serverRedirPort: args.redirport, serverPublicPort: httpsPort, expire: c.expire, viewOnly: (c.vo == 1) ? 1 : 0, nodeName: encodeURIComponent(node.name).replace(/'/g, '%27'), remotePlatform: remotePlatform, features: c.p, features2: features2, webrtc: shareWebRtc, webrtcconfig: shareWebRtcConfig }, req, domain));
                 }
             });
         });
