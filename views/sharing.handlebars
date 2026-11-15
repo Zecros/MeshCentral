@@ -4305,7 +4305,7 @@
         var RMM_MODS = ['ctrl', 'alt', 'win'];
         var RMM_MOD_VK = { ctrl: [17, false], alt: [18, false], win: [91, true] };
         var RMM_IME_KEYS = { ArrowLeft: [37, true], ArrowUp: [38, true], ArrowRight: [39, true], ArrowDown: [40, true], Escape: [27, false], Tab: [9, false], Delete: [46, true], Home: [36, true], End: [35, true], PageUp: [33, true], PageDown: [34, true], Insert: [45, true] };
-        var RMM_RTC_REASONS = { 'no-echo': 'ett tryck kom inte fram', 'timeout': 'inget svar', 'ice-failed': 'nätet släpper inte igenom', 'answer': 'fel svar', 'offer': 'kunde inte starta', 'create': 'webbläsaren kan inte', 'channel-closed': 'kanalen stängdes', 'ice-disconnected': 'nätet bytte', 'switch': 'bytet blev inte klart' };
+        var RMM_RTC_REASONS = { 'direct-silent': 'direktvägen svarade inte', 'no-echo': 'ett tryck kom inte fram', 'timeout': 'inget svar', 'ice-failed': 'nätet släpper inte igenom', 'answer': 'fel svar', 'offer': 'kunde inte starta', 'create': 'webbläsaren kan inte', 'channel-closed': 'kanalen stängdes', 'ice-disconnected': 'nätet bytte', 'switch': 'bytet blev inte klart' };
 
         var rmmDev = { touch: false, mobile: false, phone: false, tablet: false, ios: false, cellular: false };
         var rmmView = { z: 1, tx: 0, ty: 0, cx: 0.5, cy: 0.5, fit: null, kbTop: null };
@@ -5109,8 +5109,6 @@
             var origSend = d.send;
             d.rmmRawSend = function (x) { return origSend.call(d, x); };
             d.send = function (x) { return rmmRtcSend(d, x); };
-            var origDisp = d.m.onDisplayinfo;
-            d.m.onDisplayinfo = function () { rmmEchoReply(d); if (origDisp) { return origDisp.apply(this, arguments); } };
         }
         // Between our webrtc1 and the agent's webrtc2 neither path takes input: keep it and send it on the
         // direct path once the agent has confirmed. On the direct path, only a channel that is open is used;
@@ -5130,7 +5128,7 @@
             try { pc = new RTCPeerConnection(rmmRtcConfig || undefined); dc = pc.createDataChannel('DataChannel', {}); } catch (ex) { rmmRtcFail('create'); return; }
             rmmRtc.d = d; rmmRtc.pc = pc; rmmRtc.dc = dc;
             rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null; rmmRtc.cand = null;
-            rmmRtc.queue = []; rmmRtc.queueSpecial = []; rmmRtc.echo = null;
+            rmmRtc.queue = []; rmmRtc.queueSpecial = [];
             d.webrtc = pc; // agent-redir's Stop() closes it too
             rmmStats.offers++;
             rmmRtcSet('trying', '');
@@ -5199,7 +5197,6 @@
             rmmStats.queuedAtSwitch = (rmmStats.queuedAtSwitch || 0) + q.length;
             rmmRtcSet('direct', '');
             rmmRtcStats();
-            rmmEchoProbe(d); // does this agent answer "which screens?" on the direct path? Then special keys can be confirmed.
         }
         function rmmRtcClose() {
             if (rmmRtc.timer) { clearTimeout(rmmRtc.timer); rmmRtc.timer = null; }
@@ -5207,8 +5204,9 @@
             var d = rmmRtc.d, pc = rmmRtc.pc, dc = rmmRtc.dc;
             // Special keys still waiting in the switch queue or for their confirmation are sent again on the next session.
             if (rmmRtc.queueSpecial && rmmRtc.queueSpecial.length) { for (var qi = 0; qi < rmmRtc.queueSpecial.length; qi++) { rmmSpecialPend(rmmRtc.queueSpecial[qi]); } }
-            if (rmmEcho && (rmmEcho.d === d)) { clearTimeout(rmmEcho.timer); for (var ei = 0; ei < rmmEcho.keys.length; ei++) { rmmSpecialPend(rmmEcho.keys[ei]); } rmmEcho = null; }
-            rmmRtc.queue = []; rmmRtc.queueSpecial = []; rmmRtc.echo = null;
+            if (rmmUnacked.length) { for (var ui = 0; ui < rmmUnacked.length; ui++) { if (rmmUnacked[ui].d === d) { rmmSpecialPend(rmmUnacked[ui].key); } } rmmUnacked = []; }
+            rmmRtc.queue = []; rmmRtc.queueSpecial = [];
+            rmmRtc.losing = false;
             rmmRtc.d = null; rmmRtc.pc = null; rmmRtc.dc = null; rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null;
             if (d) {
                 if (d.webrtc === pc) { d.webrtc = null; }
@@ -5227,8 +5225,28 @@
             rmmRtcSet('failed', reason);
         }
         // Broke after the switch: reconnect over the relay at once, quietly.
+        // Step 4: before giving the path up, one last look at the transport counters, so a special key that did
+        // arrive (its acknowledgement just not read yet) is not sent a second time on the relay.
         function rmmRtcLost(reason) {
-            var d = rmmRtc.d;
+            if (rmmRtc.losing) return;
+            var d = rmmRtc.d, pc = rmmRtc.pc, mine = [];
+            for (var i = 0; i < rmmUnacked.length; i++) { if (rmmUnacked[i].d === d) { mine.push(rmmUnacked[i]); } }
+            if (!mine.length || !pc) { rmmRtcLostNow(d, reason); return; }
+            rmmRtc.losing = true;
+            var done = false;
+            var finish = function (fin) {
+                if (done) return;
+                done = true; rmmRtc.losing = false;
+                for (var j = 0; fin && (j < mine.length); j++) {
+                    var k = rmmUnacked.indexOf(mine[j]);
+                    if ((k >= 0) && ((fin.n > mine[j].base.n) || (fin.ts > mine[j].base.ts))) { rmmUnacked.splice(k, 1); rmmStats.specialAcked = (rmmStats.specialAcked || 0) + 1; }
+                }
+                if (rmmRtc.pc === pc) { rmmRtcLostNow(d, reason); }
+            };
+            rmmRtcRecv(pc).then(finish);
+            setTimeout(function () { finish(null); }, 300);
+        }
+        function rmmRtcLostNow(d, reason) {
             rmmRtcClose();
             rmmStats.lost++;
             rmmRtcCool(RMM_RTC_COOL_LOST);
@@ -5325,36 +5343,84 @@
         }
 
         //
-        // Nordbase Remote step 3 (2026-11-15): special keys (Ctrl+Alt+Del, Win, Alt+Tab, Alt+F4, Esc, Tab) are
-        // never lost on a path switch.
+        // Nordbase Remote step 3 (2026-11-15), changed in step 4: special keys (Ctrl+Alt+Del, Win, Alt+Tab, Alt+F4,
+        // Esc, Tab) are never lost on a path switch, and pressing one never makes the page leave the direct path.
         //  - During the switch to the direct path they wait in the switch queue (rmmRtcSend) and go out in order.
-        //  - On the direct path they are followed by "which screens?" (KVM command 11). The agent reads its input
-        //    in order, so its answer proves the key reached the KVM. No answer within 2 s: the direct path is
-        //    taken as broken, the page switches quietly to the relay and sends the key once more there.
-        //    (If the agent does not answer command 11 at all, checked once per session, the key is just sent.)
+        //  - On the direct path they go on the data channel; the relay cannot carry them (after webrtc1 the agent
+        //    unpipes relay input from the KVM, and its control channel has no Ctrl+Alt+Del command).
+        //  - Step 4: the confirmation is the WebRTC transport itself, not the KVM. The data channel is reliable
+        //    (SCTP): every message is acknowledged by the agent's WebRTC stack. The page reads the transport's
+        //    receive counters just before the key and checks that the agent's side sent something after it.
+        //    Step 3 used an answer to KVM command 11, but on Windows Ctrl+Alt+Del switches to the Winlogon desktop,
+        //    the agent restarts its KVM "slave" process and the command after the key is lost: no answer, and the
+        //    page wrongly left the direct path (staging, 15 Nov). Only when nothing at all comes back on the direct
+        //    path for 4 s is it taken as dead: quiet switch to the relay, and the key is sent there.
         //  - While the page switches quietly to the relay, a press is kept and sent when the session is back
         //    (at most 10 s later; never after Avsluta or when the link has expired).
         //
 
-        var RMM_ECHO_MS = 2000;
+        var RMM_DIRECT_SILENT_MS = 4000;
         var rmmSpecialPending = [];   // [{ label, fn, at }]
         var rmmSpecialNow = null;     // the special key being sent right now
         var rmmSpecialWait = false;   // a new session: send waiting keys once its first screen size has arrived
-        var rmmEcho = null;           // { d, keys: [...], timer }
+        var rmmUnacked = [];          // [{ d, key }] special keys sent on the direct path, transport receipt not yet seen
 
-        function rmmSpecialKey(label, fn) {
-            var key = { label: label, fn: fn, at: Date.now() };
+        function rmmSpecialKey(label, fn, keyIn) {
+            var key = keyIn || { label: label, fn: fn, at: Date.now() };
             if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) {
                 if ((desktop != null) && (desktop.State == 3)) { fn(); return; } // Intel AMT: as before
                 if (rmmQuietNow() || (rmmQuietTimer != null) || rmmSpecialWait) { rmmSpecialPend(key); }
                 return;
             }
+            if ((rmmRtc.d === desktop) && (rmmRtc.state == 'direct') && !rmmRtc.switching && rmmRtc.pc) { rmmSpecialDirect(desktop, key); return; }
+            rmmSpecialSend(key);
+        }
+        function rmmSpecialSend(key) {
             rmmStats.specialSent = (rmmStats.specialSent || 0) + 1;
             rmmSpecialNow = key;
-            try { fn(); } finally { rmmSpecialNow = null; }
-            if (rmmRtc.d !== desktop) return;
-            if (rmmRtc.switching) return;                                       // queued; noted in rmmRtc.queueSpecial
-            if ((rmmRtc.state == 'direct') && (rmmRtc.echo === true)) { rmmEchoAdd(desktop, key); }
+            try { key.fn(); } finally { rmmSpecialNow = null; }
+        }
+        // Direct path: counters first, then the key, then wait for anything from the agent's side.
+        function rmmSpecialDirect(d, key) {
+            var pc = rmmRtc.pc;
+            rmmRtcRecv(pc).then(function (base) {
+                if ((desktop !== d) || (rmmRtc.d !== d) || (rmmRtc.pc !== pc) || (rmmRtc.state != 'direct')) { rmmSpecialKey(key.label, key.fn, key); return; } // the path changed meanwhile
+                rmmSpecialSend(key);
+                if (base == null) { rmmStats.specialUnverified = (rmmStats.specialUnverified || 0) + 1; return; } // no counters in this browser: trust SCTP
+                var item = { d: d, key: key, base: base };
+                rmmUnacked.push(item);
+                var t0 = Date.now();
+                var poll = function () {
+                    if (rmmUnacked.indexOf(item) < 0) return;                          // moved on (session closed, sent again)
+                    rmmRtcRecv(pc).then(function (now) {
+                        if (rmmUnacked.indexOf(item) < 0) return;
+                        if ((now == null) || (now.n > base.n) || (now.ts > base.ts)) { // the agent's side answered after the key: delivered
+                            rmmUnacked.splice(rmmUnacked.indexOf(item), 1);
+                            rmmStats.specialAcked = (rmmStats.specialAcked || 0) + 1;
+                            return;
+                        }
+                        if ((Date.now() - t0) < RMM_DIRECT_SILENT_MS) { setTimeout(poll, 250); return; }
+                        rmmStats.directSilent = (rmmStats.directSilent || 0) + 1;     // nothing at all for 4 s: the direct path is dead
+                        if ((rmmRtc.pc === pc) && (rmmRtc.state == 'direct')) { rmmRtcLost('direct-silent'); } // the key moves to rmmSpecialPending in rmmRtcClose
+                    });
+                };
+                setTimeout(poll, 50);
+            });
+        }
+        // What the agent's side has sent us on the direct path: packets and bytes of the chosen candidate pair and
+        // the transport (SCTP acknowledgements, data, ICE consent answers all count). null = not available.
+        function rmmRtcRecv(pc) {
+            if (!pc || !pc.getStats) return Promise.resolve(null);
+            return pc.getStats().then(function (r) {
+                var pair = null, pairId = null, tb = 0, tp = 0;
+                r.forEach(function (s) {
+                    if (s.type == 'transport') { if (s.selectedCandidatePairId) { pairId = s.selectedCandidatePairId; } tb += (s.bytesReceived || 0); tp += (s.packetsReceived || 0); }
+                    if ((s.type == 'candidate-pair') && (s.state == 'succeeded') && (s.nominated || s.selected) && !pair) { pair = s; }
+                });
+                if (pairId && r.get && r.get(pairId)) { pair = r.get(pairId); }
+                if (!pair && !tb) return null;
+                return { n: tb + tp + (pair ? ((pair.bytesReceived || 0) + (pair.packetsReceived || 0) + (pair.responsesReceived || 0)) : 0), ts: pair ? (pair.lastPacketReceivedTimestamp || 0) : 0 };
+            }).catch(function () { return null; });
         }
         // Called by rmmRtcSend when a special key's bytes are queued or the path broke under them.
         function rmmSpecialNote() {
@@ -5375,30 +5441,8 @@
             for (var i = 0; i < list.length; i++) {
                 if ((now - list[i].at) > 10000) continue; // too old: a late Ctrl+Alt+Del would surprise
                 rmmStats.specialResent = (rmmStats.specialResent || 0) + 1;
-                rmmSpecialKey(list[i].label, list[i].fn);
+                rmmSpecialKey(list[i].label, list[i].fn, list[i]);
             }
-        }
-        function rmmEchoProbe(d) {
-            rmmRtc.echo = null;
-            var t = setTimeout(function () { if ((rmmRtc.d === d) && (rmmRtc.echo === null)) { rmmRtc.echo = false; } }, 3000);
-            rmmRtc.echoProbe = { d: d, timer: t };
-            try { d.m.GetDisplayNumbers(); } catch (ex) { }
-        }
-        function rmmEchoAdd(d, key) {
-            if (!rmmEcho || (rmmEcho.d !== d)) { rmmEcho = { d: d, keys: [], timer: null }; }
-            rmmEcho.keys.push(key);
-            if (rmmEcho.timer) { clearTimeout(rmmEcho.timer); }
-            rmmEcho.timer = setTimeout(function () {
-                if (!rmmEcho || (rmmEcho.d !== d)) return;
-                rmmStats.echoMissed = (rmmStats.echoMissed || 0) + 1;
-                if ((rmmRtc.d === d) && (rmmRtc.state == 'direct')) { rmmRtcLost('no-echo'); } // keys move to rmmSpecialPending in rmmRtcClose
-                else { for (var i = 0; i < rmmEcho.keys.length; i++) { rmmSpecialPend(rmmEcho.keys[i]); } rmmEcho = null; }
-            }, RMM_ECHO_MS);
-            try { d.m.GetDisplayNumbers(); } catch (ex) { }
-        }
-        function rmmEchoReply(d) {
-            if (rmmRtc.echoProbe && (rmmRtc.echoProbe.d === d) && (rmmRtc.d === d)) { clearTimeout(rmmRtc.echoProbe.timer); rmmRtc.echoProbe = null; rmmRtc.echo = true; }
-            if (rmmEcho && (rmmEcho.d === d)) { clearTimeout(rmmEcho.timer); rmmStats.echoOk = (rmmStats.echoOk || 0) + rmmEcho.keys.length; rmmEcho = null; }
         }
 
         start();

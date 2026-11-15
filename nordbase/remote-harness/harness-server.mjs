@@ -28,7 +28,12 @@ export class FakeAgent {
             noscale: false,      // the agent ignores scaling requests
             silentScale: false,  // the agent scales but never sends the new size
             ctrlDelay: 0,        // ms before the agent answers webrtc0/webrtc1 (a wider path-switch window)
-            revertAfter: 0 };    // ms after the first scaling change the agent goes back to 100 % by itself (a desktop switch)
+            revertAfter: 0,      // ms after the first scaling change the agent goes back to 100 % by itself (a desktop switch)
+            // Step 4: like the real Windows agent on staging. Ctrl+Alt+Del switches to the Winlogon desktop; the KVM
+            // "master" restarts its "slave" process, so for a moment every other input (keys, mouse, KVM command 11)
+            // is lost, then the new slave sends its screen and a full picture. Nothing is answered for the key itself.
+            cadRestartsKvm: false,
+            rtcDeaf: false };    // the agent's direct path is dead: nothing that arrives on it is read
         this.cadTotal = 0;       // never reset: every Ctrl+Alt+Del that reached the "KVM"
         this.peer = null;        // step 2: { answer(sdp, mode) -> Promise<sdp>, send(buf), close() } in a second Chrome tab
         this.rtcSession = null;
@@ -50,7 +55,7 @@ export class FakeAgent {
         const s = this.rtcSession;
         if (ev.ev === 'open') { this.log.rtc.opened++; if (s) s.enqueue('{"ctrlChannel":"102938","type":"webrtc0"}'); return; } // like tunnel_webrtc_OnDataChannel
         if (ev.ev === 'close') { this.log.rtc.peerClosed++; return; }
-        if ((ev.ev === 'data') && s && ev.b64) { s.onBinary(Buffer.from(ev.b64, 'base64'), 'rtc'); }
+        if ((ev.ev === 'data') && s && ev.b64 && !this.cfg.rtcDeaf) { s.onBinary(Buffer.from(ev.b64, 'base64'), 'rtc'); }
     }
 
     // The share is removed in MeshCentral: the relay closes both sides (with a close frame) and refuses new ones.
@@ -182,6 +187,12 @@ class Session {
 
     onCommand(cmd, b, path = 'ws') {
         const log = this.agent.log;
+        if ((cmd !== 10) && this.kvmRestartUntil && (Date.now() < this.kvmRestartUntil)) { log.lostInRestart = (log.lostInRestart || 0) + 1; return; } // the old KVM slave is gone
+        if ((cmd === 10) && this.agent.cfg.cadRestartsKvm) {
+            this.kvmRestartUntil = Date.now() + 1200;
+            const t = setTimeout(() => { this.timers.delete(t); if (this.ws.open) { this.sendScreen(); this.fullFrame(); } }, 1200);
+            this.timers.add(t);
+        }
         switch (cmd) {
             case 1: log.keys.push({ t: 'key', flag: b[4], kc: b[5], path }); log.input.push({ t: 'key', flag: b[4], kc: b[5], path }); break;
             case 85: log.keys.push({ t: 'uni', flag: b[4], ch: String.fromCharCode(b.readUInt16BE(5)), path }); log.input.push({ t: 'uni', flag: b[4], ch: String.fromCharCode(b.readUInt16BE(5)), path }); break;

@@ -12,7 +12,7 @@ import { sleep } from './cdp.mjs';
 export async function runStep3(ctx) {
     const { page, agent, check, outDir, load, connected, peerPage } = ctx;
     const trace = {};
-    const resetCfg = () => Object.assign(agent.cfg, { dupConnect: false, lateOldSize: '', noscale: false, silentScale: false, ctrlDelay: 0, revertAfter: 0, rtc: 'off', latency: 0, jitter: 0, bw: 0, refuse: false });
+    const resetCfg = () => Object.assign(agent.cfg, { dupConnect: false, lateOldSize: '', noscale: false, silentScale: false, ctrlDelay: 0, revertAfter: 0, cadRestartsKvm: false, rtcDeaf: false, rtc: 'off', latency: 0, jitter: 0, bw: 0, refuse: false });
     const state = () => page.eval(`({ agentScaling: rmmAgentScaling, pending: rmmPendingScaling, ignored: rmmScale.ignoredUntil > Date.now(), canvas: document.getElementById('Desk').width + 'x' + document.getElementById('Desk').height,
         stale: rmmScale.stale, log: rmmScale.log.slice(-12), info: rmmInfoText() })`);
     const asked = () => agent.log.compression.map((c) => c.scaling);
@@ -88,9 +88,11 @@ export async function runStep3(ctx) {
     resetCfg();
     await page.eval('try { sessionStorage.clear(); } catch (ex) { } true');
     agent.reset(); agent.display = 1;
-    agent.cfg.rtc = 'ok'; agent.cfg.ctrlDelay = 400; // a wide switch window, like a slow relay
+    agent.cfg.rtc = 'ok'; agent.cfg.ctrlDelay = 800; // a wide switch window, like a slow relay
+    agent.cfg.cadRestartsKvm = true;                 // step 4: the real Windows agent (no answer, the KVM restarts after the key)
     await load({ webrtc: 1 });
-    await connected(15000);
+    // Start pressing as soon as the session takes input (not after the first picture), so presses surely fall in the switch.
+    await page.waitFor('(desktop != null) && (desktop.State == 3)', 15000, 'session up');
     const cad0 = agent.cadTotal, presses = [];
     async function press(phase) {
         const s = await page.eval("({ enabled: !document.querySelector('.rmm-quick[data-key=\"10\"]').disabled, rtc: rmmRtc.state, switching: rmmRtc.switching, connected: (desktop != null) && (desktop.State == 3) })");
@@ -99,7 +101,11 @@ export async function runStep3(ctx) {
     }
     for (let i = 0; i < 30; i++) { await press('start: relä, byte, direkt'); await sleep(120); }
     await page.waitFor("rmmRtc.state == 'direct'", 12000, 'direct').catch(() => { });
+    const lostBefore = await page.eval('rmmStats.lost || 0');
     for (let i = 0; i < 5; i++) { await press('direkt'); await sleep(200); }
+    await sleep(5000); // longer than the 4 s the page would wait for a dead direct path
+    const afterDirect = await page.eval('({ rtc: rmmRtc.state, lost: rmmStats.lost || 0, silent: rmmStats.directSilent || 0, acked: rmmStats.specialAcked || 0 })');
+    trace.afterDirectPresses = afterDirect;
     for (let i = 0; i < 10; i++) {
         await press('direktvägen bryts, tyst byte till servern');
         if (i === 2) { await sleep(80); await peerPage.eval('peerClose()'); }
@@ -116,25 +122,47 @@ export async function runStep3(ctx) {
     check('Ctrl+Alt+Del 50 gånger över vägbyten: alla 50 når datorn, ingen två gånger', presses.length === 50 && enabled === 50 && got === 50, { presses: presses.length, enabled, reachedKvm: got, byPhase });
     check('Ctrl+Alt+Del: tryck under själva bytet och under det tysta bytet till servern ingår', presses.some((p) => p.switching) && presses.some((p) => !p.connected), byPhase);
     check('Ingen indata på fel väg (relä efter bytet, direktväg före bytet)', agent.log.rtc.wsInputAfterSwitch === 0 && agent.log.rtc.rtcInputBeforeSwitch === 0, agent.log.rtc);
-    check('På direktvägen bekräftas Ctrl+Alt+Del av agentens svar (eko)', (st3.stats.echoOk || 0) >= 5, { echoOk: st3.stats.echoOk, echoMissed: st3.stats.echoMissed, kept: st3.stats.specialKept, resent: st3.stats.specialResent, queuedAtSwitch: st3.stats.queuedAtSwitch });
+    check('Steg 4: Ctrl+Alt+Del på direktvägen lämnar inte direktvägen (agenten svarar inte, KVM startas om)', afterDirect.rtc === 'direct' && afterDirect.lost === lostBefore && afterDirect.silent === 0, afterDirect);
+    check('Steg 4: på direktvägen bekräftas trycket av WebRTC-transporten, inte av KVM', afterDirect.acked >= 5 && (agent.log.lostInRestart || 0) >= 0, { acked: afterDirect.acked, lostInKvmRestart: agent.log.lostInRestart || 0, kept: st3.stats.specialKept, resent: st3.stats.specialResent, queuedAtSwitch: st3.stats.queuedAtSwitch });
 
-    // A special key on a direct path whose answers stop (the channel looks open but nothing comes back):
-    // after 2 s the page switches quietly to the relay and sends the key again there, exactly once.
+    // Step 4, the staging case exactly: the real agent answers nothing on the direct path after Ctrl+Alt+Del (its
+    // KVM restarts, and no picture or answer comes back for a while). The page must stay on the direct path, and
+    // the key must reach the agent exactly once.
+    resetCfg();
+    await page.eval('try { sessionStorage.clear(); } catch (ex) { } true');
+    agent.reset(); agent.display = 1; agent.cfg.rtc = 'ok'; agent.cfg.cadRestartsKvm = true;
+    await load({ webrtc: 1 });
+    await connected(15000);
+    await page.waitFor("rmmRtc.state == 'direct'", 12000, 'direct').catch(() => { });
+    let cad1 = agent.cadTotal;
+    const realSend = agent.peer.send;
+    agent.peer.send = () => { };           // nothing comes back from the agent on the direct path (no picture, no answer)
+    for (let i = 0; i < 2; i++) { await page.click('.rmm-quick[data-key="10"]'); await sleep(1500); }
+    await sleep(5000);
+    agent.peer.send = realSend;
+    let st4 = await page.eval('({ rtc: rmmRtc.state, reason: rmmRtc.reason, connected: (desktop != null) && (desktop.State == 3), stats: rmmStats })');
+    trace.noAnswerOnDirect = { reachedKvm: agent.cadTotal - cad1, page: st4 };
+    check('Steg 4, staging-fallet: inget svar på direktvägen efter Ctrl+Alt+Del, sidan stannar på "Direkt" och varje tryck når datorn en gång', st4.connected && st4.rtc === 'direct' && (agent.cadTotal - cad1) === 2 && !(st4.stats.directSilent > 0), { reachedKvm: agent.cadTotal - cad1, rtc: st4.rtc, acked: st4.stats.specialAcked, silent: st4.stats.directSilent });
+
+    // A direct path that is really dead without closing (nothing at all comes back, not even the transport's own
+    // acknowledgements; simulated by freezing the page's transport counters and an agent that reads nothing on it):
+    // after 4 s a quiet switch to the relay, and the key is sent there, exactly once in total.
     resetCfg();
     await page.eval('try { sessionStorage.clear(); } catch (ex) { } true');
     agent.reset(); agent.display = 1; agent.cfg.rtc = 'ok';
     await load({ webrtc: 1 });
     await connected(15000);
-    await page.waitFor("rmmRtc.state == 'direct' && rmmRtc.echo === true", 12000, 'direct with echo').catch(() => { });
-    const cad1 = agent.cadTotal;
-    const realSend = agent.peer.send;
-    agent.peer.send = () => { };           // the agent's direct path stops answering (input still arrives)
+    await page.waitFor("rmmRtc.state == 'direct'", 12000, 'direct').catch(() => { });
+    cad1 = agent.cadTotal;
+    agent.cfg.rtcDeaf = true;
+    await page.eval('window.__realRecv = rmmRtcRecv; rmmRtcRecv = function () { return Promise.resolve({ n: 1, ts: 1 }); }; true');
     await page.click('.rmm-quick[data-key="10"]');
-    await sleep(6000);
-    agent.peer.send = realSend;
-    const st4 = await page.eval('({ rtc: rmmRtc.state, reason: rmmRtc.reason, connected: (desktop != null) && (desktop.State == 3), stats: rmmStats })');
-    trace.echoMissing = { reachedKvm: agent.cadTotal - cad1, page: st4 };
-    check('Utan svar på direktvägen: tyst byte till servern och Ctrl+Alt+Del skickas där (kan nå datorn två gånger, se rapporten)', st4.connected && st4.reason === 'no-echo' && (agent.cadTotal - cad1) >= 1 && (agent.cadTotal - cad1) <= 2, { reachedKvm: agent.cadTotal - cad1, reason: st4.reason, resent: st4.stats.specialResent });
+    await sleep(8000);
+    await page.eval('rmmRtcRecv = window.__realRecv; true');
+    agent.cfg.rtcDeaf = false;
+    st4 = await page.eval('({ rtc: rmmRtc.state, reason: rmmRtc.reason, connected: (desktop != null) && (desktop.State == 3), stats: rmmStats })');
+    trace.deadDirect = { reachedKvm: agent.cadTotal - cad1, page: st4 };
+    check('Död direktväg utan stängning: tyst byte till servern efter 4 s, Ctrl+Alt+Del når datorn en gång (via servern)', st4.connected && st4.reason === 'direct-silent' && (agent.cadTotal - cad1) === 1, { reachedKvm: agent.cadTotal - cad1, reason: st4.reason, resent: st4.stats.specialResent });
 
     resetCfg();
     fs.writeFileSync(path.join(outDir, 'steg3-matvarden.json'), JSON.stringify(trace, null, 2));
