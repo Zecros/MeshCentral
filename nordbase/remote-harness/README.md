@@ -5,7 +5,8 @@ Tests `views/sharing.handlebars` without MeshCentral, a server or a real compute
 ```
 cd external/meshcentral-fork
 node nordbase/remote-harness/run.mjs --out /tmp/nordbase-remote-harness   # about 3 minutes
-node nordbase/remote-harness/run.mjs --quick                               # skips the Auto test, about 1.5 minutes
+node nordbase/remote-harness/run.mjs --quick                               # skips the Auto and jitter tests
+node nordbase/remote-harness/run.mjs --step2 --quick                       # only step 2 (phone, keyboard, WebRTC), about 3 minutes
 ```
 
 Needs Node 22+ and Google Chrome (or Edge; set `CHROME_PATH`). No installs, no network.
@@ -14,6 +15,11 @@ Needs Node 22+ and Google Chrome (or Edge; set `CHROME_PATH`). No installs, no n
   protocol, emulated latency and bandwidth, drop, dead link, agent without WebP, broken WebP tiles) and a fake
   `sharecontrol.ashx` that records every clipboard message (there must be none).
 - `encoder.html`: draws a synthetic 4K + Full HD "desktop" and encodes JPEG/WebP tiles in the same headless Chrome.
-- `run.mjs`: the checks. Writes `resultat.json`, `tangenttabell.json`, `auto-forlopp.json` and screenshots to `--out`.
+- `run.mjs`: the step 1 checks, then `step2.mjs`. Writes `resultat.json`, `tangenttabell.json`, `auto-forlopp.json`, `telefon-skrivtabell.json`, `steg2-matvarden.json` and screenshots to `--out`.
+- `step2.mjs` (step 2): phone/tablet view with Chrome touch emulation (portrait, landscape, tablet, safe areas), exact mouse/wheel/key bytes for every gesture,
+  zoom/pan maths against the rendered canvas, typed Swedish text through the hidden keyboard field (incl. composition and autocorrect), sticky modifiers,
+  reconnect that keeps the view, network change and stall handling, and WebRTC against a fake peer with its silent fallbacks, expiry and revocation.
+- `peer.html` (step 2): the fake agent's WebRTC end in its own tab (Chrome stands in for MeshAgent's ILibWebRTC). Chrome is started with
+  `--disable-features=WebRtcHideLocalIpsWithMdns --allow-loopback-in-peer-connection` so two tabs on this machine can connect.
 
-What it cannot show: how a real MeshAgent reacts (WebP, scaling, frame rate). See `docs/fjarrstyrning.md` in the RMM repo.
+What it cannot show: how a real MeshAgent reacts (WebP, scaling, frame rate, its own WebRTC stack), and how a real phone keyboard and hand behave. See `docs/fjarrstyrning.md` in the RMM repo.

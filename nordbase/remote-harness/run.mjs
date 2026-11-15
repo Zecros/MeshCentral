@@ -12,10 +12,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { startHarnessServer } from './harness-server.mjs';
 import { launchChrome, CDP, sleep } from './cdp.mjs';
+import { runStep2 } from './step2.mjs';
 
 const args = process.argv.slice(2);
 const outDir = path.resolve(args.includes('--out') ? args[args.indexOf('--out') + 1] : path.join(os.tmpdir(), 'nordbase-remote-harness'));
 const quick = args.includes('--quick');
+const step2Only = args.includes('--step2'); // only the step 2 checks (phone, keyboard, WebRTC)
 fs.mkdirSync(outDir, { recursive: true });
 
 const results = [];
@@ -58,9 +60,21 @@ try {
     await enc.waitFor('window.encoderReady === true');
     agent.encoder = (spec) => enc.eval('encodeTiles(' + JSON.stringify(spec) + ')');
 
+    // Step 2: the fake agent's WebRTC end lives in its own tab.
+    const peerPage = await cdp.newPage(base + '/__peer.html');
+    await peerPage.waitFor('window.peerReady === true');
+    await peerPage.binding('harnessPeer', (payload) => agent.onPeerEvent(JSON.parse(payload)));
+    agent.peer = {
+        answer: (sdp, mode) => peerPage.eval('peerAnswer(' + JSON.stringify(sdp) + ', ' + JSON.stringify(mode) + ')'),
+        send: (buf) => { peerPage.eval('peerSend(' + JSON.stringify(buf.toString('base64')) + ')').catch(() => { }); },
+        close: () => { peerPage.eval('peerClose()').catch(() => { }); }
+    };
+
     const page = await cdp.newPage();
     await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
     await page.send('Page.bringToFront');
+    // Count every RTCPeerConnection the share page makes, so the checks can see that each one is closed.
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: "(function(){ var O = window.RTCPeerConnection; if (!O) return; window.__pcs = []; var W = function (c) { var pc = new O(c); window.__pcs.push(pc); return pc; }; W.prototype = O.prototype; window.RTCPeerConnection = W; })();" });
     const lastComp = () => agent.log.compression[agent.log.compression.length - 1];
     const waitComp = async (pred, ms, label) => { const end = Date.now() + ms; while (Date.now() < end) { const c = lastComp(); if (c && pred(c)) return c; await sleep(100); } throw new Error('timeout: ' + label + ' last=' + JSON.stringify(lastComp())); };
     const connected = (ms = 15000) => page.waitFor("(desktop != null) && (desktop.State == 3) && rmmHadPicture && !document.getElementById('rmmReconnect').classList.contains('rmm-show')", ms, 'connected with picture');
@@ -72,6 +86,7 @@ try {
         await page.eval("document.getElementById('Desk') && document.getElementById('Desk').focus(); true");
     }
 
+    if (!step2Only) {
     // ---------------------------------------------------------------- first load, Auto, scaling
     await page.eval('localStorage.clear(); true').catch(() => { });
     await load();
@@ -357,19 +372,12 @@ try {
     check('Windows-webbläsare: Mac-läget är av', (await page.eval('rmmMacKeysOn()')) === false);
     await page.send('Emulation.setUserAgentOverride', { userAgent: '' });
 
-    // ---------------------------------------------------------------- phone width screenshot
-    await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
-    await page.send('Emulation.setTouchEmulationEnabled', { enabled: true });
-    agent.reset();
-    await load();
-    await connected();
-    await sleep(1000);
-    const noScroll = await page.eval('document.documentElement.scrollWidth <= window.innerWidth');
-    check('Mobilbredd: ingen sidledsrullning av sidan', noScroll);
-    const tall = await page.eval("Array.from(document.querySelectorAll('.rmm-quick, #rmmQuality .rmm-btn, #disconnectbutton1')).every(b => b.getBoundingClientRect().height >= 34)");
-    check('Knapparna är minst 34–40 px höga (pekvänliga)', tall);
-    await page.screenshot(path.join(outDir, 'mobil-390.png'));
-    await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    } // end of the step 1 checks
+
+    // ---------------------------------------------------------------- step 2: phone, tablet, keyboard, WebRTC
+    // (Step 1's 390 px check of the two toolbars is replaced: on a phone the toolbars give way to the mobile view.)
+    const offersBefore = agent.totalOffers || 0;
+    await runStep2({ page, cdp, agent, check, outDir, load, connected, lastComp, waitComp, fmtKeys, peerPage, quick, offersBefore });
 
     check('Inga JavaScript-fel på sidan', page.errors.length === 0, page.errors.slice(0, 5));
 } catch (ex) {

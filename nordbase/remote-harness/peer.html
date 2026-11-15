@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="sv">
+<head><meta charset="utf-8"><title>Harness WebRTC peer</title></head>
+<body>
+<script>
+// Step 2: the fake agent's end of the direct path. MeshAgent answers the page's offer with its own
+// WebRTC stack (ILibWebRTC); here a second Chrome tab plays that part. Node talks to this tab over CDP:
+// peerAnswer(offer, mode) -> answer SDP, peerSend(base64) -> data channel, peerClose().
+// Events go back through the CDP binding harnessPeer(JSON).
+// Modes: 'ok' = a working direct path; 'icefail' = an answer whose candidates lead nowhere.
+var pc = null, dc = null;
+
+function toB64(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i += 0x8000) { s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); } return btoa(s); }
+function fromB64(b64) { var s = atob(b64), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) { b[i] = s.charCodeAt(i); } return b; }
+function emit(o) { try { window.harnessPeer(JSON.stringify(o)); } catch (ex) { } }
+
+window.peerAnswer = async function (offerSdp, mode) {
+    if (pc) { try { pc.close(); } catch (ex) { } }
+    pc = new RTCPeerConnection();
+    var mine = pc;
+    pc.ondatachannel = function (e) {
+        dc = e.channel; dc.binaryType = 'arraybuffer';
+        var told = false;
+        dc.onopen = function () { if (!told) { told = true; emit({ ev: 'open' }); } };
+        dc.onmessage = function (m) { if (typeof m.data == 'string') { emit({ ev: 'text', text: m.data }); } else { emit({ ev: 'data', b64: toB64(m.data) }); } };
+        dc.onclose = function () { emit({ ev: 'close' }); };
+        if (dc.readyState == 'open') { dc.onopen(); }
+    };
+    var sdp = offerSdp;
+    if (mode == 'icefail') { sdp = sdp.split('\r\n').filter(function (l) { return l.indexOf('a=candidate') != 0; }).join('\r\n'); }
+    await pc.setRemoteDescription({ type: 'offer', sdp: sdp });
+    var ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    await new Promise(function (r) { if (pc.iceGatheringState == 'complete') { r(); return; } var t = setTimeout(r, 2500); pc.onicegatheringstatechange = function () { if (mine.iceGatheringState == 'complete') { clearTimeout(t); r(); } }; });
+    if (pc !== mine) { throw new Error('replaced'); }
+    var out = mine.localDescription.sdp;
+    if (mode == 'icefail') { out = out.split('\r\n').map(function (l) { return (l.indexOf('a=candidate') == 0) ? l.replace(/ (\S+) (\d+) typ /, ' 192.0.2.1 9 typ ') : l; }).join('\r\n'); }
+    return out;
+};
+window.peerSend = function (b64) { if (dc && (dc.readyState == 'open')) { dc.send(fromB64(b64)); return true; } return false; };
+window.peerClose = function () { if (pc) { try { pc.close(); } catch (ex) { } } if (dc) { emit({ ev: 'close' }); } pc = null; dc = null; return true; };
+window.peerState = function () { return { pc: pc ? pc.connectionState : 'none', dc: dc ? dc.readyState : 'none' }; };
+window.peerReady = true;
+</script>
+</body>
+</html>

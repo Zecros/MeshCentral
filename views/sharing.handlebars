@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-    <meta name="viewport" content="user-scalable=1.0,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-visual" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="robots" content="noindex,nofollow">
@@ -589,6 +589,148 @@
             body.rmm-remote #deskActionsSettings { display: none !important; }
             body.rmm-remote #DeskTimer { display: none !important; }
         }
+
+        /* Nordbase Remote step 2 (2026-11-15): phones and tablets. The remote screen gets the whole
+           screen, the controls sit behind one small handle, and nothing important is under the notch
+           or the home bar (safe areas). Desktop browsers never get the class rmm-mobile. */
+        body.rmm-remote .rmm-net em { font-style: normal; color: var(--nordbase-muted); font-weight: 500; font-size: 12px; }
+        body.rmm-remote .rmm-net em:empty { display: none; }
+        #rmmTouch, #rmmPointer, #rmmTapMark, #rmmHandle, #rmmPanel, #rmmPanelShade, #rmmKeyBar, #rmmIme, #rmmSafeProbe { display: none; }
+        #rmmSafeProbe { position: fixed; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+        html.rmm-mobile, body.rmm-mobile { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+        body.rmm-mobile #deskarea1,
+        body.rmm-mobile #deskarea4 { display: none !important; }
+        body.rmm-mobile #p11 { left: 0 !important; }
+        body.rmm-mobile.rmm-on-desk #LeftSideToolBar { display: none !important; }
+        body.rmm-mobile #deskarea3x {
+            position: fixed !important;
+            left: 0; top: 0; right: 0; bottom: 0;
+            height: auto !important;
+            max-height: none !important;
+            overflow: hidden;
+            background: #000;
+        }
+        body.rmm-mobile #DeskParent { position: absolute; left: 0; top: 0; right: 0; bottom: 0; height: auto; overflow: hidden !important; }
+        body.rmm-mobile #Desk { position: absolute; left: 0; top: 0; margin: 0 !important; transform-origin: 0 0; will-change: transform; }
+        body.rmm-mobile #Desk.rmm-anim { transition: transform .22s ease-out; }
+        body.rmm-mobile #rmmTouch {
+            display: block; position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 3;
+            touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body.rmm-mobile #rmmPointer {
+            position: absolute; left: 0; top: 0; z-index: 3; width: 26px; height: 26px; pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+        }
+        body.rmm-mobile #rmmPointer.rmm-show { display: block; }
+        body.rmm-mobile #rmmTapMark {
+            position: absolute; left: 0; top: 0; z-index: 3; width: 44px; height: 44px; margin: -22px 0 0 -22px;
+            border-radius: 999px; border: 2px solid var(--nordbase-accent); pointer-events: none; opacity: 0;
+        }
+        body.rmm-mobile #rmmTapMark.rmm-show { display: block; animation: rmmtap .45s ease-out forwards; }
+        body.rmm-mobile #rmmTapMark.rmm-hold { display: block; opacity: 1; animation: none; border-width: 3px; transform: scale(1.3); }
+        body.rmm-mobile #rmmTapMark.rmm-right { border-color: #f2c94c; }
+        @keyframes rmmtap { from { opacity: 1; transform: scale(.5); } to { opacity: 0; transform: scale(1.2); } }
+
+        /* The handle: one small button, can be dragged out of the way. */
+        body.rmm-mobile #rmmHandle {
+            display: inline-flex; align-items: center; gap: 8px;
+            position: fixed; z-index: 20;
+            left: 50%; top: calc(env(safe-area-inset-top) + 8px);
+            height: 44px; min-width: 44px; padding: 0 14px 0 12px; box-sizing: border-box;
+            border: 1px solid rgba(246, 244, 238, 0.22); border-radius: 999px;
+            background: rgba(16, 18, 15, 0.82); color: var(--nordbase-text);
+            font: inherit; font-size: 15px; font-weight: 650; line-height: 1;
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+            transform: translateX(-50%); cursor: pointer;
+        }
+        body.rmm-mobile #rmmHandle.rmm-moved { transform: none; }
+        body.rmm-mobile #rmmHandle i { width: 10px; height: 10px; border-radius: 999px; background: #8b8f88; flex: 0 0 auto; }
+        body.rmm-mobile #rmmHandle[data-state="good"] i { background: #5fd68a; }
+        body.rmm-mobile #rmmHandle[data-state="shaky"] i { background: #f2c94c; }
+        body.rmm-mobile #rmmHandle[data-state="bad"] i { background: #ff6b6b; }
+        body.rmm-mobile #rmmHandle svg { flex: 0 0 auto; opacity: .85; }
+        body.rmm-mobile.rmm-panel-open #rmmHandle { opacity: 0; pointer-events: none; }
+
+        /* The panel: a sheet from the bottom (portrait), from the right on short landscape screens. */
+        body.rmm-mobile #rmmPanelShade { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 29; background: rgba(0, 0, 0, 0.35); }
+        body.rmm-mobile.rmm-panel-open #rmmPanelShade { display: block; }
+        body.rmm-mobile #rmmPanel {
+            display: block; position: fixed; z-index: 30;
+            left: 0; right: 0; bottom: 0; max-height: 86%;
+            overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
+            padding: 14px calc(16px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+            border-top: 1px solid var(--nordbase-line); border-radius: 16px 16px 0 0;
+            background: rgba(16, 18, 15, 0.97); color: var(--nordbase-text);
+            box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+            transform: translateY(105%); transition: transform .22s ease-out; visibility: hidden;
+        }
+        body.rmm-mobile.rmm-panel-open #rmmPanel { transform: none; visibility: visible; }
+        @media (orientation: landscape) and (max-height: 560px) {
+            body.rmm-mobile #rmmPanel {
+                left: auto; top: 0; width: min(400px, 62vw); max-height: none;
+                padding: calc(12px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) 16px;
+                border-top: 0; border-left: 1px solid var(--nordbase-line); border-radius: 16px 0 0 16px;
+                transform: translateX(105%);
+            }
+        }
+        @media (min-width: 700px) and (min-height: 700px) {
+            body.rmm-mobile #rmmPanel { left: 50%; right: auto; width: 560px; margin-left: -280px; }
+        }
+        body.rmm-mobile #rmmPanel .rmm-p-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        body.rmm-mobile #rmmPanel .rmm-p-name { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        body.rmm-mobile #rmmPanel .rmm-net { height: 36px; font-size: 14px; }
+        body.rmm-mobile #rmmPanel .rmm-net em { font-size: 13px; }
+        body.rmm-mobile #rmmPanel h5 { margin: 14px 0 6px; font-size: 13px; font-weight: 650; color: var(--nordbase-muted); letter-spacing: 0; }
+        body.rmm-mobile #rmmPanel .rmm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        body.rmm-mobile #rmmPanel .rmm-seg { display: flex; width: 100%; box-sizing: border-box; }
+        body.rmm-mobile #rmmPanel .rmm-seg .rmm-btn { flex: 1 1 0; height: 44px !important; min-height: 44px !important; font-size: 15px !important; }
+        body.rmm-mobile #rmmPanel .rmm-btn { height: 48px !important; min-height: 48px !important; min-width: 48px; padding: 0 14px !important; font-size: 15px !important; }
+        body.rmm-mobile #rmmPanel .rmm-close { flex: 0 0 auto; width: 48px; padding: 0 !important; }
+        body.rmm-mobile #rmmPanel .rmm-danger { border-color: rgba(255, 107, 107, 0.36) !important; background: rgba(255, 107, 107, 0.14) !important; color: #ffdede !important; }
+        body.rmm-mobile #rmmPanel .rmm-hint { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.45; color: var(--nordbase-muted); }
+        body.rmm-mobile #rmmPanel .rmm-hint b { color: var(--nordbase-text); font-weight: 650; }
+        body.rmm-mobile #rmmPanel .rmm-display-row:empty { display: none; }
+
+        /* Key bar above the phone keyboard. Ctrl, Alt and Win are sticky (tap = next key, tap twice = locked). */
+        body.rmm-mobile.rmm-kb-open #rmmKeyBar {
+            display: flex; align-items: center; gap: 6px;
+            position: fixed; z-index: 25; left: 0; right: 0; bottom: 0;
+            box-sizing: border-box; height: calc(56px + env(safe-area-inset-bottom));
+            padding: 6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
+            background: rgba(16, 18, 15, 0.96); border-top: 1px solid var(--nordbase-line);
+            -webkit-user-select: none; user-select: none;
+        }
+        body.rmm-mobile.rmm-kb-up #rmmKeyBar { height: 56px; padding-bottom: 6px; }
+        /* The keys scroll sideways (a soft edge shows there is more); keyboard and close stay put on the right. */
+        body.rmm-mobile #rmmKeyBar .rmm-kb-scroll {
+            display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; height: 100%;
+            overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+            -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+            padding-right: 22px;
+        }
+        body.rmm-mobile #rmmKeyBar .rmm-kb-scroll::-webkit-scrollbar { display: none; }
+        body.rmm-mobile #rmmKeyBar .rmm-kb-fixed { display: flex; gap: 6px; flex: 0 0 auto; padding-left: 6px; border-left: 1px solid var(--nordbase-line); }
+        body.rmm-mobile #rmmKeyBar .rmm-btn { height: 44px !important; min-height: 44px !important; min-width: 48px; padding: 0 12px !important; font-size: 15px !important; touch-action: manipulation; }
+        body.rmm-mobile #rmmKeyBar .rmm-mod[data-mod-state="1"] { background: var(--nordbase-accent) !important; color: #071008 !important; border-color: var(--nordbase-accent) !important; }
+        body.rmm-mobile #rmmKeyBar .rmm-mod[data-mod-state="2"] { background: var(--nordbase-accent) !important; color: #071008 !important; border-color: #fff !important; box-shadow: inset 0 -4px 0 #071008; }
+        body.rmm-mobile #rmmKeyBar .rmm-sep { height: 30px; }
+        body.rmm-mobile #rmmIme {
+            display: block; position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; z-index: 1;
+            margin: 0; padding: 0; border: 0; outline: 0; resize: none; overflow: hidden;
+            opacity: 0; color: transparent; background: transparent; caret-color: transparent;
+            font-size: 16px; /* 16 px or iOS zooms the page when the field gets focus */
+        }
+        body.rmm-mobile #dialog { max-height: calc(100% - 24px); }
+        body.rmm-mobile #d2typeText, body.rmm-mobile #d2clipText { font-size: 16px !important; }
+        body.rmm-mobile #rmmReconnect > div { padding: 18px 22px; }
+        body.rmm-mobile .rmm-desk-only { display: none !important; }
+        body:not(.rmm-mobile) .rmm-mobile-only { display: none !important; }
     </style>
 </head>
 <body class="rmm-remote" style="overflow:hidden;background-color:black">
@@ -607,7 +749,7 @@
         <div id=deskarea0>
             <div id=deskarea1 class="areaHead" style="line-height:24px">
                 <div class="toright2">
-                    <div id="rmmNet" class="rmm-net" title="Anslutningen: mätt fördröjning och hur bilderna kommer fram"><i></i><span id="rmmNetText">Ingen kontakt</span><small id="rmmNetMs"></small></div>
+                    <div id="rmmNet" class="rmm-net" title="Anslutningen: mätt fördröjning och hur bilderna kommer fram"><i></i><span id="rmmNetText">Ingen kontakt</span><small id="rmmNetMs"></small><em id="rmmNetPath"></em></div>
                     <div id="rmmQuality" class="rmm-seg" role="group" aria-label="Bild">
                         <button type="button" class="rmm-btn" data-q="auto" aria-pressed="true" onclick="rmmSetQuality('auto')" title="Anpassar bilden efter nätet">Auto</button>
                         <button type="button" class="rmm-btn" data-q="sharp" aria-pressed="false" onclick="rmmSetQuality('sharp')" title="Skarp text, mer data">Skarp</button>
@@ -649,6 +791,9 @@
                     </div>
                 </div>
                 <div id=p11DeskConsoleMsg style="display:none;text-align:left;cursor:pointer;position:absolute;left:30px;top:17px;color:yellow;background-color:rgba(0,0,0,0.6);padding:10px;border-radius:5px" onclick=clearConsoleMsg()></div>
+                <div id="rmmTouch" aria-hidden="true"></div>
+                <div id="rmmPointer" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M2 2 L2 21 L7.2 16.4 L10.6 24 L14 22.5 L10.7 15 L18 15 Z" fill="#fff" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+                <div id="rmmTapMark" aria-hidden="true"></div>
             </div>
             <div id=deskarea4 class="areaFoot" style="min-height:24px">
                 <div class="toright2">
@@ -690,6 +835,78 @@
                 </div>
             </div>
         </div>
+        <div id="rmmSafeProbe"></div>
+        <button type="button" id="rmmHandle" class="rmm-mobile-only" aria-label="Visa knapparna" title="Visa knapparna. Dra för att flytta."><i></i><span id="rmmHandleText">Ansluter</span><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12"/></svg></button>
+        <div id="rmmPanelShade" class="rmm-mobile-only" onclick="rmmPanel(false)"></div>
+        <div id="rmmPanel" class="rmm-mobile-only" role="dialog" aria-label="Fjärrstyrning">
+            <div class="rmm-p-head">
+                <div class="rmm-net" id="rmmMNet"><i></i><span id="rmmMNetText">Ingen kontakt</span><small id="rmmMNetMs"></small><em id="rmmMNetPath"></em></div>
+                <div class="rmm-p-name" id="rmmMName"></div>
+                <button type="button" class="rmm-btn rmm-close" onclick="rmmPanel(false)" aria-label="Stäng">&#x2715;</button>
+            </div>
+            <h5>Styr med</h5>
+            <div class="rmm-seg" role="group" aria-label="Styr med">
+                <button type="button" class="rmm-btn" data-pm="trackpad" aria-pressed="true" onclick="rmmSetPointerMode('trackpad')">Styrplatta</button>
+                <button type="button" class="rmm-btn" data-pm="touch" aria-pressed="false" onclick="rmmSetPointerMode('touch')">Peka</button>
+            </div>
+            <ul class="rmm-hint" id="rmmHint"></ul>
+            <h5>Bild</h5>
+            <div class="rmm-seg" role="group" aria-label="Bild">
+                <button type="button" class="rmm-btn" data-q="auto" aria-pressed="true" onclick="rmmSetQuality('auto')">Auto</button>
+                <button type="button" class="rmm-btn" data-q="sharp" aria-pressed="false" onclick="rmmSetQuality('sharp')">Skarp</button>
+                <button type="button" class="rmm-btn" data-q="fast" aria-pressed="false" onclick="rmmSetQuality('fast')">Snabb</button>
+            </div>
+            <div id="rmmMDisplaysBox" style="display:none">
+                <h5>Skärm</h5>
+                <div class="rmm-seg" id="rmmMDisplays" role="group" aria-label="Skärmar"></div>
+            </div>
+            <h5>Visa</h5>
+            <div class="rmm-row">
+                <button type="button" class="rmm-btn rmm-input" id="rmmKbButton" onclick="rmmKeyboard(true)"><svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="1" y="1" width="20" height="14" rx="2.5"/><path d="M5 5h1M9 5h1M13 5h1M17 5h0M5 8.5h1M9 8.5h1M13 8.5h1M16.5 8.5h.5M7 12h8" stroke-linecap="round"/></svg>Tangentbord</button>
+                <button type="button" class="rmm-btn" onclick="rmmFitView(true)">Passa in</button>
+                <button type="button" class="rmm-btn" id="rmmMFull" onclick="rmmToggleFullscreen(); rmmPanel(false)">Helskärm</button>
+            </div>
+            <h5>Snabbval</h5>
+            <div class="rmm-row">
+                <button type="button" class="rmm-btn rmm-quick" onclick="rmmQuickKey(10); rmmPanel(false)">Ctrl+Alt+Del</button>
+                <button type="button" class="rmm-btn rmm-quick" onclick="rmmQuickKey(9); rmmPanel(false)">Alt+Tab</button>
+                <button type="button" class="rmm-btn rmm-quick" onclick="rmmQuickKey(7); rmmPanel(false)">Alt+F4</button>
+                <button type="button" class="rmm-btn rmm-quick" onclick="rmmQuickKey(5); rmmPanel(false)">Win</button>
+                <button type="button" class="rmm-btn rmm-input" onclick="rmmPanel(false); showDeskType()">Skriv text</button>
+                <button type="button" class="rmm-btn" id="rmmMClip" onclick="rmmPanel(false); showDeskClip()">Urklipp</button>
+            </div>
+            <h5>Mer</h5>
+            <div class="rmm-row">
+                <button type="button" class="rmm-btn" id="rmmMFiles" onclick="rmmPanel(false); go(13)">Filer</button>
+                <button type="button" class="rmm-btn" id="rmmMTerm" onclick="rmmPanel(false); go(12)">Terminal</button>
+                <button type="button" class="rmm-btn" onclick="rmmPanel(false); showDesktopSettings()">Inställningar</button>
+                <button type="button" class="rmm-btn rmm-danger" id="rmmMEnd" onclick="rmmPanel(false); connectDesktop(event, 0)">Avsluta</button>
+            </div>
+        </div>
+        <div id="rmmKeyBar" class="rmm-mobile-only" role="toolbar" aria-label="Tangenter">
+          <div class="rmm-kb-scroll">
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="27">Esc</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="9">Tab</button>
+            <button type="button" class="rmm-btn rmm-mod" data-kb="mod" data-mod="ctrl" data-mod-state="0">Ctrl</button>
+            <button type="button" class="rmm-btn rmm-mod" data-kb="mod" data-mod="alt" data-mod-state="0">Alt</button>
+            <button type="button" class="rmm-btn rmm-mod" data-kb="mod" data-mod="win" data-mod-state="0">Win</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="37" data-ext="1" aria-label="Vänster">&#x2190;</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="38" data-ext="1" aria-label="Upp">&#x2191;</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="40" data-ext="1" aria-label="Ner">&#x2193;</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="39" data-ext="1" aria-label="Höger">&#x2192;</button>
+            <button type="button" class="rmm-btn" data-kb="key" data-vk="46" data-ext="1">Del</button>
+            <span class="rmm-sep"></span>
+            <button type="button" class="rmm-btn" data-kb="quick" data-quick="10">Ctrl+Alt+Del</button>
+            <button type="button" class="rmm-btn" data-kb="quick" data-quick="9">Alt+Tab</button>
+            <button type="button" class="rmm-btn" data-kb="quick" data-quick="7">Alt+F4</button>
+            <button type="button" class="rmm-btn" data-kb="type">Skriv text</button>
+          </div>
+          <div class="rmm-kb-fixed">
+            <button type="button" class="rmm-btn" data-kb="ime" aria-label="Visa eller dölj telefonens tangentbord"><svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="1" y="1" width="20" height="14" rx="2.5"/><path d="M5 5h1M9 5h1M13 5h1M17 5h0M5 8.5h1M9 8.5h1M13 8.5h1M16.5 8.5h.5M7 12h8" stroke-linecap="round"/></svg></button>
+            <button type="button" class="rmm-btn" data-kb="close" aria-label="Stäng tangenterna">&#x2715;</button>
+          </div>
+        </div>
+        <textarea id="rmmIme" class="rmm-mobile-only" aria-label="Skriv till datorn" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="enter" rows="1"></textarea>
     </div>
     <div id=p12 class="noselect" style="overflow:hidden;position:absolute;left:54px;top:0;right:0;bottom:0;display:none;background-color:black">
         <div id="p12warning" onclick=showFeaturesDlg()>
@@ -850,6 +1067,13 @@
                             <option value="auto">WebP om det går (bäst)</option>
                             <option value="jpeg">Alltid JPEG</option>
                         </select>
+                    </div>
+                    <div>
+                        <div>Väg</div>
+                        <div>
+                            <label style="display:block"><input type="checkbox" id="d7rmmDirect" />Direkt till datorn när det går (WebRTC)</label>
+                            <div id="d7rmmDirectInfo" style="font-size:12px;color:var(--nordbase-muted)"></div>
+                        </div>
                     </div>
                     <div id="d7desktopOtherSettings">
                         <div>Mus och tangentbord</div>
@@ -1195,6 +1419,7 @@
         function deskAdjust() {
             if ((xxcurrentView == 12) && (terminal != null) && (xtermfit != null)) { xtermfit.fit(); } // Terminal
             QS('fileArea4')['height'] = 'calc(100vh - ' + (90 + Q('fileArea2').clientHeight) + 'px)'; // Files
+            if (rmmViewActive()) { rmmViewLayout(); return; } // step 2: phone/tablet view with its own zoom and pan
             var parentH = Q('DeskParent').clientHeight, parentW = Q('DeskParent').clientWidth;
             var deskH = Q('Desk').height, deskW = Q('Desk').width;
 
@@ -1295,6 +1520,7 @@
             QV('deskActionsSettings', (browserfullscreen == false));
             Q('DeskControl').checked = true;
             QS('DeskControlSpan').color = Q('DeskControl').checked ? null : 'red';
+            if (typeof rmm2UpdateUi == 'function') { rmm2UpdateUi(); }
         }
 
         // Debug
@@ -3120,6 +3346,8 @@
             if (x == 12) { Q('LeftMenuTerminal').classList.add('slbbuttonsel2'); }
             if (x == 13) { Q('LeftMenuFiles').classList.add('slbbuttonsel2'); }
             xxcurrentView = x;
+            document.body.classList.toggle('rmm-on-desk', x == 11); // step 2: the phone view hides the left bar only on the desktop tab
+            if (x == 11) { setTimeout(deskAdjust, 0); }
         }
 
         function putstore(name, val) {
@@ -3206,7 +3434,7 @@
         };
         var RMM_EXTENDED = ['ShiftRight', 'AltRight', 'ControlRight', 'Home', 'End', 'Insert', 'Delete', 'PageUp', 'PageDown', 'NumpadDivide', 'NumpadEnter', 'NumLock', 'Pause', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
 
-        var rmmPrefs = { quality: 'auto', fit: true, macKeys: null, encoding: 'auto' };
+        var rmmPrefs = { quality: 'auto', fit: true, macKeys: null, encoding: 'auto', pointer: 'trackpad', direct: true };
         var rmmNode = { display: null, native: null };
         var rmmWebpBrowser = null;    // null = not known yet
         var rmmWebpBroken = 0;        // WebP tiles this browser could not decode
@@ -3255,6 +3483,8 @@
                 if (typeof p.fit == 'boolean') { rmmPrefs.fit = p.fit; }
                 if (typeof p.macKeys == 'boolean') { rmmPrefs.macKeys = p.macKeys; }
                 if (p.encoding == 'jpeg') { rmmPrefs.encoding = 'jpeg'; }
+                if ((p.pointer == 'trackpad') || (p.pointer == 'touch')) { rmmPrefs.pointer = p.pointer; }
+                if (p.direct === false) { rmmPrefs.direct = false; }
             }
             var n = rmmStoreGet(rmmNodeKey());
             if (n) {
@@ -3262,6 +3492,7 @@
                 if (n.native && (n.native.w > 0) && (n.native.h > 0)) { rmmNode.native = { w: n.native.w, h: n.native.h }; }
             }
             deskAspectRatio = rmmPrefs.fit ? 0 : 1;
+            rmm2Init(); // step 2: phone/tablet view, gestures, keyboard, direct path, network changes
             if (typeof check_webp_feature == 'function') {
                 check_webp_feature('lossy', function (f, ok) { rmmWebpBrowser = (ok === true); rmmApplyProfile('webp-check'); });
             } else { rmmWebpBrowser = false; }
@@ -3310,7 +3541,9 @@
         function rmmQualityCap(q) { return ((features2 & 1) == 0) ? Math.min(q, 60) : q; } // allowHighQualityDesktop
         function rmmCurrentProfile() {
             var p = (rmmPrefs.quality == 'auto') ? RMM_LADDER[rmmAutoStep] : RMM_PROFILES[rmmPrefs.quality];
-            return { q: rmmQualityCap(p.q), fr: p.fr, f: p.f };
+            var q = rmmQualityCap(p.q);
+            if (rmmDev.phone) { q = Math.min(q, 60); } // step 2: a phone screen does not need more
+            return { q: q, fr: p.fr, f: p.f };
         }
         // 4 = WebP when this browser decodes it, 1 = JPEG otherwise. If the agent cannot make WebP it
         // answers with JPEG tiles, which are drawn as they are (the tile type is read from the bytes).
@@ -3320,7 +3553,7 @@
         }
         // Scaling (128 = 12.5 % ... 1024 = 100 %) so the agent sends about as many pixels as the window shows.
         function rmmTargetScaling(f) {
-            if (!rmmPrefs.fit) return 1024;
+            if (!rmmPrefs.fit && !rmmViewActive()) return 1024;
             if (rmmScalingIgnored) return rmmAgentScaling;
             var nat = rmmNative || rmmNode.native;
             if ((nat == null) || !nat.w || !nat.h) return null;
@@ -3329,8 +3562,16 @@
             rmmLastDpr = window.devicePixelRatio || 1;
             var dpr = Math.min(Math.max(rmmLastDpr, 1), 2);
             var ratio = Math.min((cw * dpr) / nat.w, (ch * dpr) / nat.h) * f;
+            var cap = 1024;
+            if (rmmViewActive()) {
+                // Step 2, phone/tablet: as many pixels as the zoomed picture shows, but never more than
+                // a Full HD frame to a phone (a 4K screen is sent at most at 50 %).
+                var mr = rmmMobileRatio(nat, dpr);
+                if (mr != null) { ratio = mr * f; }
+                cap = Math.max(256, Math.floor(Math.sqrt((rmmDev.phone ? RMM_PIXEL_CAP.phone : RMM_PIXEL_CAP.tablet) / (nat.w * nat.h)) * 8) * 128);
+            }
             var s = Math.ceil((ratio * 8) - 0.05) * 128; // next 12.5 % step up, so text is never smaller than the window
-            return Math.max(256, Math.min(1024, s));
+            return Math.max(256, Math.min(1024, cap, s));
         }
 
         function rmmApplyProfile(reason, force) {
@@ -3371,6 +3612,7 @@
             m.ProcessScreenMsg = function (w, h) { rmmOnScreenSize(m, w, h); var r = origScreen.call(m, w, h); setTimeout(function () { rmmApplyProfile('screen'); }, 0); return r; };
             var origSend = m.SendCompressionLevel;
             m.SendCompressionLevel = function (type, level, scaling, frametimer) { origSend.call(m, type, level, scaling, frametimer); rmmNoteSent(m); };
+            rmmRtcHook(d); // step 2: the direct path (WebRTC) is negotiated by this page, not by agent-redir
             var origStop = m.Stop;
             m.Stop = function () { rmmTakeSnapshot(m); origStop.call(m); rmmRestoreSnapshot(m); };
             rmmShowReconnect(rmmHadPicture ? 'retry' : 'connecting');
@@ -3378,6 +3620,8 @@
 
         function rmmNoteSent(m) {
             var s = { type: m.ImageType, q: m.CompressionLevel, scaling: m.ScalingLevel, fr: m.FrameRateTimer };
+            // Step 2: a new image type or size means a whole new picture arrives at once; that decode burst is not a slow link.
+            if ((rmmLastSent == null) || (rmmLastSent.type != s.type) || (rmmLastSent.scaling != s.scaling)) { rmmNet.settleUntil = Date.now() + 2500; }
             var current = (rmmPendingScaling != null) ? rmmPendingScaling : rmmAgentScaling;
             if (s.scaling != current) {
                 rmmPendingScaling = s.scaling;
@@ -3443,6 +3687,7 @@
 
         function rmmOnPictureDrawn() {
             rmmHadPicture = true;
+            if (typeof rmmStats != 'undefined') { rmmStats.drawn = (rmmStats.drawn || 0) + 1; }
             if (rmmStale || (rmmReconnectAttempt > 0) || Q('rmmReconnect').classList.contains('rmm-show')) {
                 rmmStale = false; rmmSnapshot = null; rmmReconnectAttempt = 0;
                 Q('Desk').classList.remove('rmm-stale');
@@ -3453,7 +3698,7 @@
         function rmmSetQuality(q) {
             if (['auto', 'sharp', 'fast'].indexOf(q) < 0) return;
             rmmPrefs.quality = q;
-            if (q == 'auto') { rmmAutoStep = RMM_AUTO_START; rmmNet.goodSince = 0; rmmNet.badTicks = rmmNet.shakyTicks = 0; }
+            if (q == 'auto') { rmmAutoStep = rmmAutoStartStep(); rmmNet.goodSince = 0; rmmNet.badTicks = rmmNet.shakyTicks = 0; }
             rmmSavePrefs();
             rmmApplyProfile('quality');
             rmmUpdateUi();
@@ -3487,7 +3732,7 @@
             if (!box) return;
             var keys = [];
             for (var i in displays) { keys.push(parseInt(i)); }
-            if (keys.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            if (keys.length < 2) { box.style.display = 'none'; box.innerHTML = ''; QH('rmmMDisplays', ''); QV('rmmMDisplaysBox', false); return; }
             keys.sort(function (a, b) { return a - b; });
             var zeroBased = (keys.indexOf(0) >= 0), x = '';
             for (var k = 0; k < keys.length; k++) {
@@ -3497,6 +3742,7 @@
             box.innerHTML = x;
             box.style.display = '';
             rmmNoFocus(box.querySelectorAll('.rmm-btn'));
+            QH('rmmMDisplays', x); QV('rmmMDisplaysBox', true); // step 2: same buttons in the phone panel
             // The screen chosen last time for this computer.
             if (!rmmDisplayRestored && (rmmNode.display != null) && (rmmNode.display != sel) && (keys.indexOf(rmmNode.display) >= 0) && desktop && (desktop.State == 3)) {
                 rmmDisplayRestored = true;
@@ -3507,7 +3753,7 @@
         }
 
         function rmmMarkDisplay(n) {
-            var b = document.querySelectorAll('#rmmDisplays .rmm-btn');
+            var b = document.querySelectorAll('#rmmDisplays .rmm-btn, #rmmMDisplays .rmm-btn');
             for (var i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', (parseInt(b[i].getAttribute('data-display')) == n) ? 'true' : 'false'); }
         }
 
@@ -3654,11 +3900,13 @@
             if (Q('d7rmmMacKeys')) { Q('d7rmmMacKeys').checked = rmmMacKeysOn(); }
             if (Q('d7rmmEncoding')) { Q('d7rmmEncoding').value = rmmPrefs.encoding; }
             QH('d7rmmInfo', EscapeHtml(rmmInfoText()));
+            if (Q('d7rmmDirect')) { Q('d7rmmDirect').checked = (rmmPrefs.direct !== false); Q('d7rmmDirect').disabled = !rmmRtcAllowed; QH('d7rmmDirectInfo', EscapeHtml(rmmRtcInfoText())); }
         }
 
         function rmmReadSettings() {
             if (Q('d7rmmMacKeys') && (Q('d7rmmMacKeys').checked != rmmMacKeysOn())) { rmmReleaseModifiers(); rmmPrefs.macKeys = Q('d7rmmMacKeys').checked; }
             if (Q('d7rmmEncoding')) { rmmPrefs.encoding = (Q('d7rmmEncoding').value == 'jpeg') ? 'jpeg' : 'auto'; }
+            if (Q('d7rmmDirect') && rmmRtcAllowed) { rmmPrefs.direct = Q('d7rmmDirect').checked; if (!rmmPrefs.direct) { rmmRtcStop('turned-off'); } }
             rmmSavePrefs();
             rmmUpdateUi();
         }
@@ -3672,12 +3920,14 @@
             rmmNet.connectedAt = now; rmmNet.lastReply = 0; rmmNet.lastProbe = 0; rmmNet.lastData = now; rmmNet.rtts = [];
             rmmNet.rateAt = now; rmmNet.bytes = 0; rmmNet.tiles = 0; rmmNet.goodSince = 0; rmmNet.badTicks = rmmNet.shakyTicks = 0;
             rmmNet.state = 'measuring';
+            rmmNet.settleUntil = now + 3000; // step 2: the first whole picture is a burst, not a measurement
             if (rmmProbeTimer != null) { clearInterval(rmmProbeTimer); }
             rmmProbeTimer = setInterval(rmmProbe, RMM_PROBE_MS);
             if (rmmTickTimer == null) { rmmTickTimer = setInterval(rmmTick, 1000); }
             setTimeout(rmmProbe, 300);
             if (Q('rmmReconnect').classList.contains('rmm-show')) { rmmShowReconnect('waiting'); }
             rmmApplyProfile('connected');
+            rmm2OnDesktopUp();
             rmmUpdateNet();
         }
 
@@ -3687,6 +3937,7 @@
             deskPreferedStickyDisplay = -1; // the remembered screen is restored by rmmRenderDisplays
             rmmNet.state = 'off'; rmmNet.rtts = []; rmmNet.eff = null;
             QV('rmmDisplays', false); // shown again when the agent lists its screens
+            rmm2OnDesktopDown();
             rmmUpdateNet();
             if (shareIsExpired()) { rmmShowReconnect('expired'); return; }
             if (!rmmDesktopReconnectEnabled) { rmmShowReconnect('ended'); return; }
@@ -3710,6 +3961,7 @@
         function rmmShowReconnect(kind, delay) {
             var o = Q('rmmReconnect');
             if (!o) return;
+            if (((kind == 'retry') || (kind == 'connecting') || (kind == 'waiting')) && rmmQuietNow()) { rmmQuietDefer(kind, delay); return; } // step 2: silent switch to the relay
             o.classList.add('rmm-show');
             o.classList.toggle('rmm-ended', (kind == 'ended') || (kind == 'expired'));
             o.classList.toggle('rmm-can-retry', kind == 'ended');
@@ -3760,7 +4012,7 @@
                 }
             } catch (ex) { }
             rmmStale = true;
-            Q('Desk').classList.add('rmm-stale');
+            if (!rmmQuietNow()) { Q('Desk').classList.add('rmm-stale'); }
         }
 
         function rmmProbe() {
@@ -3774,6 +4026,8 @@
         function rmmOnRtt(ms) {
             var now = Date.now();
             rmmNet.lastReply = now;
+            // Step 2: the answer to a probe that waited out a stall says nothing about a queue; leave it out.
+            if (rmmNet.stallProbe && (typeof ms == 'number') && ((now - ms) <= (rmmNet.stallProbe + 5))) { rmmNet.stallProbe = 0; return; }
             if ((typeof ms == 'number') && (ms >= 0)) {
                 rmmNet.rtts.push({ ms: ms, t: now });
                 while (rmmNet.rtts.length > 30) { rmmNet.rtts.shift(); }
@@ -3788,11 +4042,16 @@
             return v[Math.floor(v.length / 2)];
         }
 
-        // The line's own normal delay: the lowest answer in the last 30 s.
+        // The line's own normal delay: the lowest answer in the last 30 s. Step 2: with 6 answers or more,
+        // the 20th percentile instead, so a jittery mobile line (answers spread 40-300 ms) is not read as a queue.
+        var rmmBaseMode = 'p20';
         function rmmBaseRtt(now) {
-            var b = null;
-            for (var i = 0; i < rmmNet.rtts.length; i++) { if (((now - rmmNet.rtts[i].t) < 30000) && ((b == null) || (rmmNet.rtts[i].ms < b))) { b = rmmNet.rtts[i].ms; } }
-            return b;
+            var v = [];
+            for (var i = 0; i < rmmNet.rtts.length; i++) { if ((now - rmmNet.rtts[i].t) < 30000) { v.push(rmmNet.rtts[i].ms); } }
+            if (v.length == 0) return null;
+            v.sort(function (a, b) { return a - b; });
+            if ((rmmBaseMode != 'p20') || (v.length < 6)) return v[0];
+            return v[Math.floor((v.length - 1) * 0.2)];
         }
 
         // Runs every second while connected. See docs/fjarrstyrning.md for the rules.
@@ -3817,9 +4076,25 @@
             var eff = Math.max((rtt == null) ? 0 : rtt, outstanding);
             rmmNet.eff = ((rtt == null) && (outstanding == 0)) ? null : eff;
             rmmNet.base = base;
+            // Step 2: on the direct path the delay the user feels is the direct round trip plus any queue
+            // the relay probe sees (on a phone the bottleneck is usually the phone's own link, shared by both).
+            if ((rmmNet.eff != null) && (rmmRtc.state == 'direct') && (rmmRtc.rtt != null)) {
+                eff = rmmRtc.rtt + Math.max(0, eff - ((base == null) ? eff : base));
+                rmmNet.eff = eff;
+            }
 
             // Dead link: the probe is unanswered and nothing at all has arrived for 12 s.
             if ((outstanding > RMM_DEAD_MS) && ((now - rmmNet.lastData) > RMM_DEAD_MS)) { rmmForceReconnect(); return; }
+            // Step 2: after a network change (wifi <-> mobile data, screen back on) a dead link is found in ~3 s.
+            if (rmmNet.checkUntil && (now > rmmNet.checkUntil)) {
+                var since = rmmNet.checkFrom;
+                rmmNet.checkUntil = 0;
+                if ((rmmNet.lastReply < since) && (rmmNet.lastData < since)) { rmmForceReconnect(); return; }
+            }
+            // Step 2: a stall (nothing arrives at all, typical for a phone changing cell or network) is a
+            // dropout, not a full link. It does not lower the quality; the first seconds after it are ignored.
+            var stalled = (outstanding > 1500) && ((now - rmmNet.lastData) > 1000);
+            if (stalled) { rmmNet.stallEnd = now + 4000; rmmNet.stallProbe = rmmNet.lastProbe; }
 
             var state;
             if (rmmNet.eff == null) { state = ((now - rmmNet.connectedAt) < 4000) ? 'measuring' : 'good'; }
@@ -3828,7 +4103,9 @@
             else { state = 'good'; }
             rmmNet.state = state;
 
-            if (rmmPrefs.quality == 'auto') { rmmAutoAdjust(now, eff, base, outstanding); }
+            if ((rmmPrefs.quality == 'auto') && !stalled && !(rmmNet.stallEnd && (now < rmmNet.stallEnd)) && !(rmmNet.settleUntil && (now < rmmNet.settleUntil))) { rmmAutoAdjust(now, eff, base, outstanding); }
+            else if (stalled) { rmmNet.badTicks = 0; rmmNet.shakyTicks = 0; rmmNet.goodSince = 0; }
+            if ((rmmRtc.state == 'direct') && ((now - rmmRtc.statsAt) >= 2000)) { rmmRtcStats(); }
             rmmUpdateNet();
         }
 
@@ -3837,6 +4114,7 @@
         function rmmAutoAdjust(now, eff, base, outstanding) {
             if (rmmNet.eff == null) return;
             var queue = Math.max(0, eff - ((base == null) ? 0 : base));
+            if ((rmmRtc.state == 'direct') && (rmmRtc.rtt != null)) { queue = Math.max(0, eff - rmmRtc.rtt); } // eff already holds direct rtt + queue
             var bad = (queue > 300) || (outstanding > 2000) || (rmmNet.decodeQueue > 40);
             var shaky = bad || (queue > 120) || (rmmNet.decodeQueue > 12);
             var good = !shaky && (queue < 60) && (rmmNet.decodeQueue <= 4);
@@ -3849,7 +4127,7 @@
                 rmmApplyProfile('auto-down');
                 return;
             }
-            if ((rmmAutoStep > 0) && rmmNet.goodSince && ((now - rmmNet.goodSince) >= 10000) && ((now - rmmNet.lastDown) >= 15000)) {
+            if ((rmmAutoStep > rmmAutoBestStep()) && rmmNet.goodSince && ((now - rmmNet.goodSince) >= 10000) && ((now - rmmNet.lastDown) >= 15000)) {
                 rmmAutoStep--;
                 rmmNet.goodSince = now;
                 rmmApplyProfile('auto-up');
@@ -3870,6 +4148,7 @@
             var x = fmt + ', kvalitet ' + s.q + ', högst ' + Math.round(1000 / s.fr) + ' bilder/s, skala ' + Math.round(s.scaling / 10.24) + ' %';
             x += ', ' + Math.round(rmmNet.rateBytes / 1024) + ' kB/s';
             if (rmmPrefs.quality == 'auto') { x += ', Auto steg ' + (rmmAutoStep + 1) + ' av ' + RMM_LADDER.length; }
+            x += ', ' + rmmPathText(true);
             return x;
         }
 
@@ -3885,15 +4164,29 @@
                 case 'connecting': text = 'Ansluter'; break;
             }
             if ((rmmNet.eff != null) && ((rmmNet.state == 'good') || (rmmNet.state == 'shaky') || (rmmNet.state == 'bad'))) { ms = Math.round(rmmNet.eff) + ' ms'; }
-            if (el.className != cls) { el.className = cls; }
-            if (Q('rmmNetText').textContent != text) { Q('rmmNetText').textContent = text; }
-            if (Q('rmmNetMs').textContent != ms) { Q('rmmNetMs').textContent = ms; }
-            el.setAttribute('data-state', rmmNet.state);
+            var path = ((rmmNet.state == 'off') || (rmmNet.state == 'connecting')) ? '' : rmmPathText(false);
+            var els = [['rmmNet', 'rmmNetText', 'rmmNetMs', 'rmmNetPath'], ['rmmMNet', 'rmmMNetText', 'rmmMNetMs', 'rmmMNetPath']];
+            for (var i = 0; i < els.length; i++) {
+                var e = Q(els[i][0]);
+                if (!e) continue;
+                if (e.className != cls) { e.className = cls; }
+                if (Q(els[i][1]).textContent != text) { Q(els[i][1]).textContent = text; }
+                if (Q(els[i][2]).textContent != ms) { Q(els[i][2]).textContent = ms; }
+                if (Q(els[i][3]).textContent != path) { Q(els[i][3]).textContent = path; }
+                e.setAttribute('data-state', rmmNet.state);
+            }
             el.title = 'Anslutningen: ' + text + (ms ? (', ' + ms) : '') + '. ' + rmmInfoText();
+            var h = Q('rmmHandle');
+            if (h) {
+                h.setAttribute('data-state', rmmNet.state);
+                var ht = (rmmReconnectShown() && !rmmQuietNow()) ? 'Ansluter igen' : text;
+                if (Q('rmmHandleText').textContent != ht) { Q('rmmHandleText').textContent = ht; }
+                h.setAttribute('aria-label', 'Visa knapparna. Anslutningen: ' + text + (ms ? (', ' + ms) : '') + (path ? (', ' + path) : ''));
+            }
         }
 
         function rmmUpdateUi() {
-            var i, b = document.querySelectorAll('#rmmQuality .rmm-btn');
+            var i, b = document.querySelectorAll('#rmmQuality .rmm-btn, #rmmPanel [data-q]');
             for (i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', (b[i].getAttribute('data-q') == rmmPrefs.quality) ? 'true' : 'false'); }
             b = document.querySelectorAll('#rmmFit .rmm-btn');
             for (i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', ((b[i].getAttribute('data-fit') == '1') == rmmPrefs.fit) ? 'true' : 'false'); }
@@ -3901,8 +4194,1028 @@
             if (Q('rmmFullButton')) { var fs = isBrowserFullscreen() ? 'Lämna helskärm' : 'Helskärm'; Q('rmmFullButton').title = fs; Q('rmmFullButton').setAttribute('aria-label', fs); }
             if (Q('deskstatus') && (expire != '')) { Q('deskstatus').title = printFlexDateTime(new Date(parseInt(expire))); }
             if (Q('d7rmmInfo') && xxdialogMode == 7) { QH('d7rmmInfo', EscapeHtml(rmmInfoText())); }
+            rmm2UpdateUi();
         }
 
+
+        //
+        // Nordbase Remote step 2 (2026-11-15)
+        // Phones and tablets: the remote screen fills the phone, the controls sit behind one small handle,
+        // two pointer modes (Styrplatta = relative like a laptop trackpad, Peka = tap where you click),
+        // pinch zoom and pan, the phone keyboard with a key bar and sticky Ctrl/Alt/Win, and smaller
+        // pictures (never a 4K frame to a phone). The direct path (WebRTC) is used when the server allows
+        // it and falls back to the relay without a sound. A phone that changes network finds a dead link in
+        // about 3 s. Nothing here opens a new channel to the server: WebRTC is negotiated inside the share's
+        // own desktop relay and closes with it (stop, share expiry, share removed). The clipboard rules of
+        // security review part 2 are untouched.
+        //
+
+        var RMM_TAP_MOVE = 10;          // px a finger may move and still be a tap
+        var RMM_HOLD_MS = 450;          // press and hold
+        var RMM_DBL_MS = 300;           // a second tap within this time is a double tap
+        var RMM_SMALL_SCALE = 0.6;      // screen px per remote px below which a double tap zooms in
+        var RMM_ZOOM_TARGET = 0.9;      // a double tap zooms to about this many screen px per remote px
+        var RMM_MAX_SCALE = 3;          // most zoom: 3 screen px per remote px
+        var RMM_PIXEL_CAP = { phone: 1920 * 1080, tablet: 2560 * 1600 }; // most pixels per frame to a phone / tablet
+        var RMM_WHEEL_PER_PX = 1.2;     // wheel units per remote pixel scrolled (120 = one notch, about 100 px in a browser)
+        var RMM_WHEEL_QUANTUM = (remotePlatform == 'windows') ? 30 : 120; // Windows takes part notches; others get whole ones
+        var RMM_RTC_TIMEOUT = 12000;    // no direct path by then: stay on the relay
+        var RMM_RTC_COOL_FAIL = 600000; // after a failed try: 10 min before the next one
+        var RMM_RTC_COOL_LOST = 120000; // after the direct path broke: 2 min on the relay
+        var RMM_IME_SENTINEL = '  '; // kept in the hidden field so Backspace always has something to delete
+        var RMM_MODS = ['ctrl', 'alt', 'win'];
+        var RMM_MOD_VK = { ctrl: [17, false], alt: [18, false], win: [91, true] };
+        var RMM_IME_KEYS = { ArrowLeft: [37, true], ArrowUp: [38, true], ArrowRight: [39, true], ArrowDown: [40, true], Escape: [27, false], Tab: [9, false], Delete: [46, true], Home: [36, true], End: [35, true], PageUp: [33, true], PageDown: [34, true], Insert: [45, true] };
+        var RMM_RTC_REASONS = { 'timeout': 'inget svar', 'ice-failed': 'nätet släpper inte igenom', 'answer': 'fel svar', 'offer': 'kunde inte starta', 'create': 'webbläsaren kan inte', 'channel-closed': 'kanalen stängdes', 'ice-disconnected': 'nätet bytte', 'switch': 'bytet blev inte klart' };
+
+        var rmmDev = { touch: false, mobile: false, phone: false, tablet: false, ios: false, cellular: false };
+        var rmmView = { z: 1, tx: 0, ty: 0, cx: 0.5, cy: 0.5, fit: null, kbTop: null };
+        var rmmPtr = { nx: 0.5, ny: 0.5, seen: false };
+        var rmmMods = { ctrl: 0, alt: 0, win: 0 };   // 0 = off, 1 = next key only, 2 = locked
+        var rmmModTapAt = { ctrl: 0, alt: 0, win: 0 };
+        var rmmG = null;               // the gesture in progress
+        var rmmPts = {};               // fingers on the screen
+        var rmmPendingTap = null;      // a tap that waits to see if a second one comes (only while the picture is small)
+        var rmmMoveTimer = null;
+        var rmmScrollAcc = 0;
+        var rmmLastTap = null;
+        var rmmKb = { open: false, last: RMM_IME_SENTINEL, composing: false };
+        var rmmPanelOpen = false;
+        var rmmHandlePos = null;
+        var rmmQuietUntil = 0, rmmQuietTimer = null;
+        var rmmWakeLock = null;
+        var rmmViewSaveTimer = null;
+        var rmmRtcAllowed = ('{{{webrtc}}}' == '1'); // the server's settings.webRTC (needs the integrator patch to webserver.js)
+        var rmmRtcConfig = null;
+        (function () { var c = '{{{webrtcconfig}}}'; if (c == '') return; try { c = JSON.parse(decodeURIComponent(c)); if (c && (typeof c == 'object')) { rmmRtcConfig = c; } } catch (ex) { } })();
+        var rmmRtc = { d: null, pc: null, dc: null, state: 'off', reason: '', timer: null, discTimer: null, rtt: null, cand: null, statsAt: 0, coolUntil: 0, dcOpen: false, agentReady: false, switching: false };
+        var rmmStats = { offers: 0, direct: 0, failed: 0, lost: 0, netChecks: 0 };
+
+        function rmmMq(q) { try { return !!(window.matchMedia && window.matchMedia(q).matches); } catch (ex) { return false; } }
+        function rmmClamp01(v) { v = Number(v); return (v >= 0) ? Math.min(0.99999, v) : 0; }
+        function rmmDist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt((dx * dx) + (dy * dy)); }
+
+        // Phones and tablets: a touch screen as the main pointer. "?rmmview=mobile" or "desktop" overrides.
+        function rmmDetectDevice() {
+            var touch = ((navigator.maxTouchPoints || 0) > 0) || ('ontouchstart' in window);
+            var mobile = touch && rmmMq('(pointer: coarse)');
+            var v = (urlargs && urlargs.rmmview) ? String(urlargs.rmmview) : '';
+            if (v == 'mobile') { mobile = true; } else if (v == 'desktop') { mobile = false; }
+            var short = Math.min(screen.width || window.innerWidth, screen.height || window.innerHeight);
+            rmmDev.touch = touch; rmmDev.mobile = mobile;
+            rmmDev.phone = mobile && (short < 600);
+            rmmDev.tablet = mobile && !rmmDev.phone;
+            rmmDev.ios = /iP(hone|ad|od)/.test(navigator.userAgent || '') || ((navigator.platform == 'MacIntel') && ((navigator.maxTouchPoints || 0) > 1));
+            try { var c = navigator.connection; rmmDev.cellular = !!(c && ((c.type == 'cellular') || (c.saveData === true) || /(^|-)(2g|3g)$/.test(c.effectiveType || ''))); } catch (ex) { }
+        }
+        // Auto starts lower on a phone (lower still on mobile data) and never goes to the top step there.
+        function rmmAutoStartStep() { if (rmmDev.phone) { return rmmDev.cellular ? 3 : 2; } return (rmmDev.tablet && rmmDev.cellular) ? 2 : RMM_AUTO_START; }
+        function rmmAutoBestStep() { return rmmDev.phone ? 1 : 0; }
+        function rmmViewActive() { return rmmDev.mobile === true; }
+
+        function rmm2Init() {
+            rmmDetectDevice();
+            rmmAutoStep = rmmAutoStartStep();
+            try { var cool = parseInt(sessionStorage.getItem('nordbaseRemote.rtcCool') || '0'); if (cool > Date.now()) { rmmRtc.coolUntil = cool; rmmRtc.state = 'cool'; } } catch (ex) { }
+            if (rmmDev.mobile) {
+                document.documentElement.classList.add('rmm-mobile');
+                document.body.classList.add('rmm-mobile');
+                document.body.classList.toggle('rmm-phone', rmmDev.phone);
+                document.body.classList.toggle('rmm-on-desk', xxcurrentView == 11);
+                rmmViewRestore();
+                rmmSetupTouch();
+                rmmSetupHandle();
+                rmmSetupKeyBar();
+                rmmSetupIme();
+                if (window.visualViewport) { window.visualViewport.addEventListener('resize', rmmOnViewport); window.visualViewport.addEventListener('scroll', rmmOnViewport); }
+                window.addEventListener('resize', function () { if (rmmHandlePos) { rmmPlaceHandle(rmmHandlePos.x, rmmHandlePos.y); } rmmOnViewport(); });
+                window.addEventListener('orientationchange', function () { setTimeout(function () { deskAdjust(); rmmOnWindowResize(); rmmOnViewport(); }, 300); });
+                document.addEventListener('gesturestart', function (e) { e.preventDefault(); }); // iOS: no page zoom, the remote screen zooms
+                QH('rmmMName', EscapeHtml(nodeName || ''));
+                if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)) { QV('rmmMFull', false); } // iPhone Safari has no fullscreen for pages
+                QV('rmmMFiles', (features & 4) != 0);
+                QV('rmmMTerm', (features & 1) != 0);
+            }
+            window.addEventListener('online', function () { rmmNetChanged('online'); });
+            window.addEventListener('offline', function () { rmmNetChanged('offline'); });
+            try { if (navigator.connection && navigator.connection.addEventListener) { navigator.connection.addEventListener('change', function () { rmmNetChanged('connection'); }); } } catch (ex) { }
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) { rmmNetChanged('visible'); rmmWakeLockOn(); } });
+            window.addEventListener('pageshow', function (e) { if (e.persisted) { rmmNetChanged('pageshow'); } });
+        }
+
+        //
+        // The view: fit, zoom, pan. The canvas sits at the fit rectangle and is moved with
+        //   transform: translate(tx, ty) scale(z), origin top left.
+        // Remote point (nx, ny) (0..1 of the remote screen) is on the screen at
+        //   x = fit.x + tx + nx * fit.w * z,  y = fit.y + ty + ny * fit.h * z   (inside #deskarea3x).
+        //
+
+        function rmmSafe() {
+            var o = Q('rmmSafeProbe'), r = { t: 0, r: 0, b: 0, l: 0 };
+            if (!o) return r;
+            try { var cs = getComputedStyle(o); r.t = parseFloat(cs.paddingTop) || 0; r.r = parseFloat(cs.paddingRight) || 0; r.b = parseFloat(cs.paddingBottom) || 0; r.l = parseFloat(cs.paddingLeft) || 0; } catch (ex) { }
+            return r;
+        }
+        function rmmAreaRect() { return Q('deskarea3x').getBoundingClientRect(); }
+
+        function rmmViewLayout() {
+            var area = Q('deskarea3x'), c = Q('Desk');
+            if (!area || !c) return;
+            var W = area.clientWidth, H = area.clientHeight;
+            if (!W || !H) return;
+            var cw = c.width || 1, ch = c.height || 1, s = rmmSafe();
+            // The whole remote screen fits inside the safe area: nothing under the notch or the home bar.
+            var aw = Math.max(40, W - s.l - s.r), ah = Math.max(40, H - s.t - s.b);
+            var k = Math.min(aw / cw, ah / ch), fw = cw * k, fh = ch * k;
+            var nat = rmmNative || rmmNode.native;
+            var natW = (nat && nat.w && nat.h && (Math.abs((nat.w / nat.h) - (cw / ch)) < 0.02)) ? nat.w : cw;
+            rmmView.fit = { x: s.l + ((aw - fw) / 2), y: s.t + ((ah - fh) / 2), w: fw, h: fh, W: W, H: H, scale: fw / natW };
+            c.style.left = rmmView.fit.x + 'px'; c.style.top = rmmView.fit.y + 'px';
+            c.style.width = fw + 'px'; c.style.height = fh + 'px';
+            rmmView.z = Math.max(1, rmmView.z); // not capped here: before the first picture the canvas is a 300x150 placeholder
+            rmmViewFromCenter();
+            rmmViewApply();
+            rmmOnViewport();
+        }
+
+        function rmmVisible() {
+            var f = rmmView.fit, b = f.H;
+            if (rmmView.kbTop != null) { b = Math.min(b, rmmView.kbTop); }
+            return { l: 0, t: 0, r: f.W, b: b };
+        }
+        // Keep the remembered centre point in the middle of what is visible (after a resize, a turn or a reconnect).
+        function rmmViewFromCenter() {
+            var f = rmmView.fit, V = rmmVisible(), z = rmmView.z;
+            rmmView.tx = ((V.l + V.r) / 2) - f.x - (rmmView.cx * f.w * z);
+            rmmView.ty = ((V.t + V.b) / 2) - f.y - (rmmView.cy * f.h * z);
+            rmmClamp();
+        }
+        function rmmCenterFromView() {
+            var f = rmmView.fit, V = rmmVisible(), z = rmmView.z;
+            if (!f) return;
+            rmmView.cx = rmmClamp01((((V.l + V.r) / 2) - f.x - rmmView.tx) / (f.w * z));
+            rmmView.cy = rmmClamp01((((V.t + V.b) / 2) - f.y - rmmView.ty) / (f.h * z));
+        }
+        function rmmClampAxis(p0, size, vMin, vMax, fitPos, z) {
+            var vs = vMax - vMin;
+            if (size <= vs + 0.5) {
+                var want = (z <= 1.0001) ? fitPos : (vMin + ((vs - size) / 2));
+                return Math.max(vMin, Math.min(vMax - size, want));
+            }
+            return Math.max(vMax - size, Math.min(vMin, p0)); // larger than the screen: no black edge inside
+        }
+        function rmmClamp() {
+            var f = rmmView.fit;
+            if (!f) return;
+            var V = rmmVisible(), z = rmmView.z;
+            rmmView.tx = rmmClampAxis(f.x + rmmView.tx, f.w * z, V.l, V.r, f.x, z) - f.x;
+            rmmView.ty = rmmClampAxis(f.y + rmmView.ty, f.h * z, V.t, V.b, f.y, z) - f.y;
+        }
+        function rmmViewApply() {
+            var c = Q('Desk');
+            if (!c || !rmmView.fit) return;
+            c.style.transform = 'translate(' + rmmView.tx + 'px,' + rmmView.ty + 'px) scale(' + rmmView.z + ')';
+            rmmPointerPlace();
+        }
+        function rmmAreaToRemote(ax, ay, raw) {
+            var f = rmmView.fit, z = rmmView.z;
+            if (!f) return { nx: 0.5, ny: 0.5 };
+            var nx = (ax - f.x - rmmView.tx) / (f.w * z), ny = (ay - f.y - rmmView.ty) / (f.h * z);
+            return raw ? { nx: nx, ny: ny } : { nx: rmmClamp01(nx), ny: rmmClamp01(ny) };
+        }
+        function rmmRemoteToArea(nx, ny) { var f = rmmView.fit, z = rmmView.z; return { x: f.x + rmmView.tx + (nx * f.w * z), y: f.y + rmmView.ty + (ny * f.h * z) }; }
+        function rmmClientToRemote(cx, cy, raw) { var r = rmmAreaRect(); return rmmAreaToRemote(cx - r.left, cy - r.top, raw); }
+        function rmmViewScale() { var f = rmmView.fit; return f ? (f.scale * rmmView.z) : 1; }
+        function rmmMaxZoom() { var f = rmmView.fit; return f ? Math.max(2, RMM_MAX_SCALE / Math.max(0.01, f.scale)) : 4; }
+        function rmmCanPan() {
+            var f = rmmView.fit;
+            if (!f) return false;
+            var V = rmmVisible();
+            return ((f.w * rmmView.z) > (V.r - V.l + 0.5)) || ((f.h * rmmView.z) > (V.b - V.t + 0.5));
+        }
+        // Zoom to z with remote point (nx, ny) at area point (ax, ay).
+        function rmmZoomTo(z, nx, ny, ax, ay, anim) {
+            var f = rmmView.fit;
+            if (!f) return;
+            z = Math.max(1, Math.min(rmmMaxZoom(), z));
+            rmmView.z = z;
+            rmmView.tx = ax - f.x - (nx * f.w * z);
+            rmmView.ty = ay - f.y - (ny * f.h * z);
+            rmmClamp();
+            rmmAnim(anim === true);
+            rmmViewApply();
+            rmmViewChanged(false);
+        }
+        function rmmPanBy(dx, dy) { rmmView.tx += dx; rmmView.ty += dy; rmmClamp(); rmmViewApply(); rmmViewChanged(true); }
+        function rmmFitView(fromButton) {
+            rmmView.z = 1; rmmView.cx = 0.5; rmmView.cy = 0.5; rmmView.tx = 0; rmmView.ty = 0;
+            rmmClamp(); rmmAnim(true); rmmViewApply(); rmmViewChanged(false);
+            if (fromButton) { rmmPanel(false); }
+        }
+        var rmmAnimTimer = null;
+        function rmmAnim(on) {
+            var c = Q('Desk');
+            if (!c) return;
+            if (rmmAnimTimer) { clearTimeout(rmmAnimTimer); rmmAnimTimer = null; }
+            if (!on) { c.classList.remove('rmm-anim'); return; }
+            c.classList.add('rmm-anim');
+            rmmAnimTimer = setTimeout(function () { rmmAnimTimer = null; c.classList.remove('rmm-anim'); }, 260);
+        }
+        function rmmViewChanged(panOnly) {
+            rmmCenterFromView();
+            if (rmmViewSaveTimer) { clearTimeout(rmmViewSaveTimer); }
+            rmmViewSaveTimer = setTimeout(function () { rmmViewSaveTimer = null; rmmViewSave(); }, 400);
+            if (!panOnly) { rmmOnWindowResize(); } // a new zoom can need a sharper (or a smaller) picture
+        }
+        // The zoom and pointer survive a reconnect (kept in memory) and a reload of the tab (sessionStorage).
+        function rmmViewSave() { try { sessionStorage.setItem(rmmNodeKey() + '.view', JSON.stringify({ z: rmmView.z, cx: rmmView.cx, cy: rmmView.cy, px: rmmPtr.nx, py: rmmPtr.ny })); } catch (ex) { } }
+        function rmmViewRestore() {
+            try {
+                var v = JSON.parse(sessionStorage.getItem(rmmNodeKey() + '.view') || 'null');
+                if (v && (v.z >= 1) && (v.z <= 100)) { rmmView.z = v.z; rmmView.cx = rmmClamp01(v.cx); rmmView.cy = rmmClamp01(v.cy); rmmPtr.nx = rmmClamp01(v.px); rmmPtr.ny = rmmClamp01(v.py); }
+            } catch (ex) { }
+        }
+        // Styrplatta: when zoomed in, the view follows the pointer near the edges.
+        function rmmFollow(nx, ny) {
+            if (!rmmView.fit || !rmmCanPan()) return;
+            var V = rmmVisible(), p = rmmRemoteToArea(nx, ny), dx = 0, dy = 0;
+            var mx = Math.max(40, (V.r - V.l) * 0.15), my = Math.max(40, (V.b - V.t) * 0.15);
+            if (p.x < V.l + mx) { dx = (V.l + mx) - p.x; } else if (p.x > V.r - mx) { dx = (V.r - mx) - p.x; }
+            if (p.y < V.t + my) { dy = (V.t + my) - p.y; } else if (p.y > V.b - my) { dy = (V.b - my) - p.y; }
+            if (dx || dy) { rmmView.tx += dx; rmmView.ty += dy; rmmClamp(); rmmViewApply(); rmmViewChanged(true); }
+        }
+        // Picture size for the phone/tablet view (used by rmmTargetScaling): what the zoomed picture shows.
+        function rmmMobileRatio(nat, dpr) {
+            var f = rmmView.fit;
+            if (!f || !nat || !nat.w) return null;
+            return (f.w * rmmView.z * dpr) / nat.w;
+        }
+
+        //
+        // Pointer drawn on the phone (a touch screen has no mouse pointer) and a short ring where a click went.
+        //
+
+        function rmmPointerVisible() { return rmmViewActive() && (desktop != null) && (desktop.State == 3) && (viewOnly != 1) && ((rmmPrefs.pointer == 'trackpad') || rmmPtr.seen); }
+        function rmmPointerPlace() {
+            var o = Q('rmmPointer');
+            if (!o || !rmmView.fit) return;
+            var show = rmmPointerVisible();
+            if (o.classList.contains('rmm-show') != show) { o.classList.toggle('rmm-show', show); }
+            if (!show) return;
+            var p = rmmRemoteToArea(rmmPtr.nx, rmmPtr.ny);
+            o.style.transform = 'translate(' + (p.x - 2) + 'px,' + (p.y - 2) + 'px)'; // the arrow tip is at (2, 2): exactly on the point
+        }
+        function rmmMark(nx, ny, kind) {
+            var o = Q('rmmTapMark');
+            if (!o || !rmmView.fit) return;
+            var p = rmmRemoteToArea(nx, ny);
+            o.style.left = p.x + 'px'; o.style.top = p.y + 'px';
+            o.className = '';
+            void o.offsetWidth; // restart the animation
+            if (kind == 'hold') { o.classList.add('rmm-hold'); } else { o.classList.add('rmm-show'); if (kind == 'right') { o.classList.add('rmm-right'); } }
+        }
+        function rmmMarkOff() { var o = Q('rmmTapMark'); if (o) { o.className = ''; } }
+        function rmmBuzz() { try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (ex) { } }
+
+        //
+        // What is sent: the same MeshAgent mouse and key messages as MeshCentral's own canvas handlers,
+        // in remote picture coordinates.
+        //   mouse  00 02 00 0A 00 <button> <x hi> <x lo> <y hi> <y lo>   button 0 = move, 02/04 = left down/up, 08/10 = right down/up
+        //   wheel  00 02 00 0C 00 00 <x> <y> <delta hi> <delta lo>        delta > 0 = scroll up
+        //
+
+        function rmmInputOk() { return (desktop != null) && (desktop.State == 3) && (desktop.contype == 1) && !xxdialogMode && isInputAllowed() && (desktop.m != null) && !desktop.m.stopInput; }
+        function rmmRemoteXY(nx, ny) {
+            var c = (desktop.m.Canvas && desktop.m.Canvas.canvas) ? desktop.m.Canvas.canvas : Q('Desk'), w = c.width || 1, h = c.height || 1;
+            return { x: Math.max(0, Math.min(w - 1, Math.floor(nx * w))), y: Math.max(0, Math.min(h - 1, Math.floor(ny * h))) };
+        }
+        function rmmMouseBtn(right, down) { var r = (desktop.m.SwapMouse === true) ? !right : right; return r ? (down ? 0x08 : 0x10) : (down ? 0x02 : 0x04); }
+        function rmmSendMouse(btn, nx, ny) {
+            var p = rmmRemoteXY(nx, ny);
+            desktop.m.send(String.fromCharCode(0x00, 0x02, 0x00, 0x0A, 0x00, btn, (p.x >> 8) & 0xFF, p.x & 0xFF, (p.y >> 8) & 0xFF, p.y & 0xFF));
+        }
+        function rmmSendWheel(delta, nx, ny) {
+            var p = rmmRemoteXY(nx, ny), a = Math.min(32767, Math.abs(delta)), hi, lo;
+            if (delta < 0) { hi = 255 - (a >> 8); lo = 255 - (a & 0xFF); } else { hi = (a >> 8); lo = a & 0xFF; } // same encoding as agent-desktop SendMouseMsg
+            desktop.m.send(String.fromCharCode(0x00, 0x02, 0x00, 0x0C, 0x00, 0x00, (p.x >> 8) & 0xFF, p.x & 0xFF, (p.y >> 8) & 0xFF, p.y & 0xFF, hi, lo));
+        }
+        function rmmQueueMove() { if (rmmMoveTimer == null) { rmmMoveTimer = setTimeout(rmmFlushMove, 16); } }
+        function rmmFlushMove() {
+            if (rmmMoveTimer == null) return;
+            clearTimeout(rmmMoveTimer); rmmMoveTimer = null;
+            if (rmmInputOk()) { rmmSendMouse(0, rmmPtr.nx, rmmPtr.ny); }
+        }
+
+        // Sticky Ctrl / Alt / Win: tap = for the next key, click or typed letter; tap twice = locked until tapped again.
+        function rmmModsDown(includeOneShot) {
+            var A = desktop.m.KeyAction, used = [];
+            for (var i = 0; i < RMM_MODS.length; i++) {
+                var k = RMM_MODS[i];
+                if ((rmmMods[k] == 2) || ((includeOneShot !== false) && (rmmMods[k] == 1))) { desktop.m.SendKeyMsgKC(A.DOWN, RMM_MOD_VK[k][0], RMM_MOD_VK[k][1]); used.push(k); }
+            }
+            return used;
+        }
+        function rmmModsUp(used) {
+            var A = desktop.m.KeyAction;
+            for (var i = used.length - 1; i >= 0; i--) {
+                var k = used[i];
+                desktop.m.SendKeyMsgKC(A.UP, RMM_MOD_VK[k][0], RMM_MOD_VK[k][1]);
+                if (rmmMods[k] == 1) { rmmMods[k] = 0; }
+            }
+            if (used.length) { rmmModsUi(); }
+        }
+        function rmmModTap(k) {
+            if (!rmmMods.hasOwnProperty(k)) return;
+            var now = Date.now(), st = rmmMods[k];
+            if ((st == 1) && ((now - rmmModTapAt[k]) < 400)) { rmmMods[k] = 2; }
+            else if (st == 0) { rmmMods[k] = 1; }
+            else { rmmMods[k] = 0; }
+            rmmModTapAt[k] = now;
+            rmmModsUi();
+        }
+        function rmmModsReset() { rmmMods = { ctrl: 0, alt: 0, win: 0 }; rmmModsUi(); }
+        function rmmModsUi() {
+            var b = document.querySelectorAll('#rmmKeyBar .rmm-mod');
+            for (var i = 0; i < b.length; i++) { var st = rmmMods[b[i].getAttribute('data-mod')] || 0; b[i].setAttribute('data-mod-state', String(st)); b[i].setAttribute('aria-pressed', st ? 'true' : 'false'); }
+        }
+        function rmmSendKey(vk, ext) {
+            if (!rmmInputOk()) return;
+            var A = desktop.m.KeyAction, used = rmmModsDown();
+            desktop.m.SendKeyMsgKC(A.DOWN, vk, ext === true);
+            desktop.m.SendKeyMsgKC(A.UP, vk, ext === true);
+            rmmModsUp(used);
+        }
+        function rmmVkForChar(ch) { var c = String(ch).toUpperCase().charCodeAt(0); return (((c >= 65) && (c <= 90)) || ((c >= 48) && (c <= 57))) ? c : null; }
+        // Text from the phone keyboard: each character as itself (Unicode), so å ä ö, capitals and symbols
+        // come out right whatever keyboard layout the computer has. With Ctrl/Alt/Win active a letter or a
+        // digit is sent as its key (Ctrl+C, Win+R ...).
+        function rmmSendText(str) {
+            if (!rmmInputOk()) return;
+            var A = desktop.m.KeyAction;
+            for (var i = 0; i < str.length; i++) {
+                var ch = str.charAt(i), c = str.charCodeAt(i);
+                if ((c == 10) || (c == 13)) { rmmSendKey(13); continue; }
+                if (c == 9) { rmmSendKey(9); continue; }
+                if (rmmMods.ctrl || rmmMods.alt || rmmMods.win) {
+                    var vk = rmmVkForChar(ch), used = rmmModsDown();
+                    if (vk != null) { desktop.m.SendKeyMsgKC(A.DOWN, vk); desktop.m.SendKeyMsgKC(A.UP, vk); }
+                    else { desktop.m.SendKeyUnicode(A.DOWN, c); desktop.m.SendKeyUnicode(A.UP, c); }
+                    rmmModsUp(used);
+                    continue;
+                }
+                desktop.m.SendKeyUnicode(A.DOWN, c);
+                desktop.m.SendKeyUnicode(A.UP, c);
+            }
+        }
+        function rmmClick(right, nx, ny) {
+            if (!rmmInputOk()) return;
+            rmmFlushMove();
+            rmmPtr.nx = nx; rmmPtr.ny = ny; rmmPtr.seen = true;
+            var used = rmmModsDown();
+            rmmSendMouse(0, nx, ny);
+            rmmSendMouse(rmmMouseBtn(right, true), nx, ny);
+            rmmSendMouse(rmmMouseBtn(right, false), nx, ny);
+            rmmModsUp(used);
+            rmmLastTap = { nx: nx, ny: ny };
+            rmmPointerPlace();
+            rmmMark(nx, ny, right ? 'right' : 'tap');
+        }
+        function rmmScrollUnits(units, at) {
+            rmmScrollAcc += units;
+            var q = RMM_WHEEL_QUANTUM, n = (rmmScrollAcc > 0) ? Math.floor(rmmScrollAcc / q) : -Math.floor(-rmmScrollAcc / q);
+            if (n == 0) return;
+            rmmScrollAcc -= n * q;
+            if (!rmmInputOk()) return;
+            var pos = at || rmmPtr;
+            rmmFlushMove();
+            var used = rmmModsDown(false); // only a locked Ctrl/Alt/Win (Ctrl locked + scroll = zoom in many programs)
+            rmmSendWheel(Math.max(-32700, Math.min(32700, n * q)), pos.nx, pos.ny);
+            rmmModsUp(used);
+        }
+        // Finger moved dy screen px: the content follows the finger (finger down = content down = wheel up).
+        function rmmScrollBy(dyCss, at) { var s = rmmViewScale(); if (s > 0) { rmmScrollUnits((dyCss / s) * RMM_WHEEL_PER_PX, at); } }
+
+        //
+        // Gestures on the remote screen
+        //   both modes: two fingers tap = right click, two fingers drag = scroll, pinch = zoom,
+        //               double tap while the picture is small = zoom in there
+        //   Styrplatta: drag = move the pointer (relative, a little faster when fast), tap = click,
+        //               hold then drag = drag and drop
+        //   Peka:       tap = click there, hold = right click, hold then drag = drag and drop,
+        //               drag = move the zoomed picture (or scroll when it is not zoomed)
+        //
+
+        function rmmSetupTouch() {
+            var t = Q('rmmTouch');
+            t.addEventListener('pointerdown', rmmPDown);
+            t.addEventListener('pointermove', rmmPMove);
+            t.addEventListener('pointerup', rmmPUp);
+            t.addEventListener('pointercancel', rmmPCancel);
+            t.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false }); // no page zoom, no callout, keeps the keyboard open
+            t.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+            t.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+            t.addEventListener('wheel', rmmWheel, { passive: false });
+        }
+
+        function rmmPDown(e) {
+            if (e.pointerType == 'mouse') { rmmMouseEv(e, 'down'); return; }
+            e.preventDefault();
+            if (rmmPanelOpen) { rmmPanel(false); }
+            try { Q('rmmTouch').setPointerCapture(e.pointerId); } catch (ex) { }
+            var now = Date.now();
+            rmmPts[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY };
+            var ids = Object.keys(rmmPts);
+            if (ids.length == 1) {
+                rmmG = { kind: 'one', t0: now, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, lt: now, v: 0, moved: false, held: false, drag: false, pan: false, used: null, hold: null };
+                rmmG.hold = setTimeout(rmmOnHold, RMM_HOLD_MS);
+            } else if (ids.length == 2) {
+                rmmEndOne();
+                var a = rmmPts[ids[0]], b = rmmPts[ids[1]], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                var an = rmmClientToRemote(mx, my, true);
+                rmmG = { kind: 'two', ids: ids, t0: now, d0: Math.max(1, rmmDist(a, b)), mx0: mx, my0: my, lmy: my, z0: rmmView.z, ax: an.nx, ay: an.ny, mode: null, maxMove: 0 };
+                rmmScrollAcc = 0;
+            } else {
+                rmmEndOne();
+                rmmG = { kind: 'done' }; // three fingers or more: nothing
+            }
+        }
+
+        function rmmEndOne() {
+            var g = rmmG;
+            if (!g || (g.kind != 'one')) return;
+            if (g.hold) { clearTimeout(g.hold); g.hold = null; }
+            rmmDragEnd(g);
+            rmmMarkOff();
+        }
+
+        function rmmPMove(e) {
+            if (e.pointerType == 'mouse') { rmmMouseEv(e, 'move'); return; }
+            var p = rmmPts[e.pointerId];
+            if (!p) return;
+            e.preventDefault();
+            p.x = e.clientX; p.y = e.clientY;
+            var g = rmmG;
+            if (!g) return;
+            if (g.kind == 'one') { rmmOneMove(g, e.clientX, e.clientY); }
+            else if (g.kind == 'two') { rmmTwoMove(g); }
+        }
+
+        function rmmOneMove(g, x, y) {
+            var now = Date.now(), dx = x - g.lx, dy = y - g.ly, dt = Math.max(1, now - g.lt);
+            if (!g.moved) {
+                if ((Math.abs(x - g.sx) <= RMM_TAP_MOVE) && (Math.abs(y - g.sy) <= RMM_TAP_MOVE)) return; // still a tap
+                g.moved = true;
+                if (g.hold) { clearTimeout(g.hold); g.hold = null; }
+                if (g.held && !g.drag) { rmmMarkOff(); rmmDragStart(g); } // Peka: hold, then move = drag
+                else if (!g.held && (rmmPrefs.pointer == 'touch')) { g.pan = true; }
+            }
+            g.lx = x; g.ly = y; g.lt = now;
+            if (rmmPrefs.pointer == 'trackpad') {
+                var v = Math.sqrt((dx * dx) + (dy * dy)) / dt;
+                g.v = g.v ? ((g.v * 0.5) + (v * 0.5)) : v;
+                var gain = Math.max(1, Math.min(2.5, 1 + ((g.v - 0.3) * 1.5))); // 1:1 when slow (under 0.3 px/ms), up to 2.5x when fast
+                rmmPtrBy(dx * gain, dy * gain);
+                return;
+            }
+            if (g.drag) {
+                var n = rmmClientToRemote(x, y);
+                rmmPtr.nx = n.nx; rmmPtr.ny = n.ny; rmmPtr.seen = true;
+                rmmPointerPlace(); rmmQueueMove();
+                return;
+            }
+            if (g.pan) { if (rmmCanPan()) { rmmPanBy(dx, dy); } else { rmmScrollBy(dy, rmmClientToRemote(g.sx, g.sy)); } }
+        }
+
+        function rmmPtrBy(dx, dy) {
+            var f = rmmView.fit;
+            if (!f) return;
+            rmmPtr.nx = rmmClamp01(rmmPtr.nx + (dx / (f.w * rmmView.z)));
+            rmmPtr.ny = rmmClamp01(rmmPtr.ny + (dy / (f.h * rmmView.z)));
+            rmmPtr.seen = true;
+            rmmFollow(rmmPtr.nx, rmmPtr.ny);
+            rmmPointerPlace();
+            rmmQueueMove();
+        }
+
+        function rmmOnHold() {
+            var g = rmmG;
+            if (!g || (g.kind != 'one') || g.moved) return;
+            g.hold = null; g.held = true;
+            rmmBuzz();
+            if (rmmPrefs.pointer == 'trackpad') { rmmDragStart(g); rmmMark(rmmPtr.nx, rmmPtr.ny, 'hold'); }
+            else { var n = rmmClientToRemote(g.sx, g.sy); rmmMark(n.nx, n.ny, 'hold'); }
+        }
+        function rmmDragStart(g) {
+            if (!rmmInputOk() || g.drag) return;
+            if (rmmPrefs.pointer == 'touch') { var n = rmmClientToRemote(g.sx, g.sy); rmmPtr.nx = n.nx; rmmPtr.ny = n.ny; rmmPtr.seen = true; }
+            rmmFlushMove();
+            g.used = rmmModsDown();
+            rmmSendMouse(0, rmmPtr.nx, rmmPtr.ny);
+            rmmSendMouse(rmmMouseBtn(false, true), rmmPtr.nx, rmmPtr.ny);
+            g.drag = true;
+            rmmPointerPlace();
+        }
+        function rmmDragEnd(g) {
+            if (!g || !g.drag) return;
+            g.drag = false;
+            rmmMarkOff();
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) return;
+            rmmFlushMove();
+            rmmSendMouse(rmmMouseBtn(false, false), rmmPtr.nx, rmmPtr.ny); // always release, so no button gets stuck
+            rmmModsUp(g.used || []);
+            g.used = null;
+        }
+
+        function rmmPUp(e) {
+            if (e.pointerType == 'mouse') { rmmMouseEv(e, 'up'); return; }
+            if (!rmmPts[e.pointerId]) return;
+            e.preventDefault();
+            delete rmmPts[e.pointerId];
+            var g = rmmG, left = Object.keys(rmmPts).length, now = Date.now();
+            if (!g) return;
+            if (g.kind == 'one') {
+                if (g.hold) { clearTimeout(g.hold); g.hold = null; }
+                if (g.drag) { rmmDragEnd(g); }
+                else if (!g.moved && !g.held) { rmmTap(g.sx, g.sy, now); }
+                else if (!g.moved && g.held) { rmmMarkOff(); if (rmmPrefs.pointer == 'touch') { var n = rmmClientToRemote(g.sx, g.sy); rmmClick(true, n.nx, n.ny); } }
+                rmmG = null;
+            } else if (g.kind == 'two') {
+                if (!g.mode && ((now - g.t0) < 400) && (g.maxMove < 15)) {
+                    if (rmmPrefs.pointer == 'trackpad') { rmmClick(true, rmmPtr.nx, rmmPtr.ny); }
+                    else { var n2 = rmmClientToRemote(g.mx0, g.my0); rmmClick(true, n2.nx, n2.ny); }
+                }
+                if (g.mode == 'zoom') { rmmViewChanged(false); }
+                rmmG = (left == 0) ? null : { kind: 'done' };
+            } else if (left == 0) { rmmG = null; }
+        }
+        function rmmPCancel(e) {
+            if ((e.pointerType == 'mouse') || !rmmPts[e.pointerId]) return;
+            delete rmmPts[e.pointerId];
+            if (rmmG && (rmmG.kind == 'one')) { rmmEndOne(); }
+            rmmG = (Object.keys(rmmPts).length == 0) ? null : { kind: 'done' };
+        }
+
+        function rmmTap(cx, cy, now) {
+            var pos = (rmmPrefs.pointer == 'trackpad') ? { nx: rmmPtr.nx, ny: rmmPtr.ny } : rmmClientToRemote(cx, cy);
+            var p = rmmPendingTap;
+            if (p) {
+                clearTimeout(p.timer); rmmPendingTap = null;
+                if (((now - p.t) < RMM_DBL_MS) && (Math.abs(cx - p.cx) < 40) && (Math.abs(cy - p.cy) < 40)) { rmmDoubleTapZoom(p.pos, p.cx, p.cy); return; }
+                rmmClick(false, p.pos.nx, p.pos.ny); // the first one was a single tap after all
+            }
+            if (rmmViewScale() < RMM_SMALL_SCALE) {
+                // The picture is too small to hit things: wait a moment, a second tap zooms in instead.
+                // When zoomed in (or on a big screen) a tap clicks at once and two taps are a double click.
+                rmmPendingTap = { t: now, cx: cx, cy: cy, pos: pos };
+                rmmPendingTap.timer = setTimeout(function () { var q = rmmPendingTap; rmmPendingTap = null; if (q) { rmmClick(false, q.pos.nx, q.pos.ny); } }, RMM_DBL_MS);
+                return;
+            }
+            rmmClick(false, pos.nx, pos.ny);
+        }
+        function rmmDoubleTapZoom(pos, cx, cy) {
+            var f = rmmView.fit;
+            if (!f) return;
+            var r = rmmAreaRect(), z = Math.max(2, RMM_ZOOM_TARGET / Math.max(0.01, f.scale));
+            var at = (rmmPrefs.pointer == 'trackpad') ? rmmRemoteToArea(pos.nx, pos.ny) : { x: cx - r.left, y: cy - r.top };
+            rmmZoomTo(z, pos.nx, pos.ny, at.x, at.y, true);
+        }
+
+        function rmmTwoMove(g) {
+            var a = rmmPts[g.ids[0]], b = rmmPts[g.ids[1]];
+            if (!a || !b) return;
+            var d = rmmDist(a, b), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+            g.maxMove = Math.max(g.maxMove, Math.abs(a.x - a.sx) + Math.abs(a.y - a.sy), Math.abs(b.x - b.sx) + Math.abs(b.y - b.sy));
+            if (!g.mode) {
+                if (Math.abs(d - g.d0) > 24) { g.mode = 'zoom'; }
+                else if ((Math.abs(mx - g.mx0) + Math.abs(my - g.my0)) > 14) { g.mode = 'scroll'; g.lmy = my; }
+                else return;
+            }
+            if (g.mode == 'zoom') {
+                var r = rmmAreaRect();
+                rmmZoomTo(g.z0 * (d / g.d0), g.ax, g.ay, mx - r.left, my - r.top, false); // the point under the fingers stays under them
+            } else {
+                var dy = my - g.lmy;
+                g.lmy = my;
+                rmmScrollBy(dy, (rmmPrefs.pointer == 'trackpad') ? null : rmmClientToRemote(g.mx0, g.my0));
+            }
+        }
+
+        // A mouse or trackpad on a tablet: points like a normal mouse; a pinch on a trackpad zooms.
+        function rmmMouseEv(e, kind) {
+            e.preventDefault();
+            var n = rmmClientToRemote(e.clientX, e.clientY);
+            rmmPtr.nx = n.nx; rmmPtr.ny = n.ny; rmmPtr.seen = true;
+            rmmPointerPlace();
+            if (!rmmInputOk()) return;
+            if (kind == 'move') { rmmQueueMove(); return; }
+            if ((e.button !== 0) && (e.button !== 2)) return;
+            if (kind == 'down') { try { Q('rmmTouch').setPointerCapture(e.pointerId); } catch (ex) { } }
+            rmmFlushMove();
+            rmmSendMouse(rmmMouseBtn(e.button == 2, kind == 'down'), n.nx, n.ny);
+        }
+        function rmmWheel(e) {
+            e.preventDefault();
+            var r = rmmAreaRect(), ax = e.clientX - r.left, ay = e.clientY - r.top;
+            if (e.ctrlKey) { var n = rmmAreaToRemote(ax, ay, true); rmmZoomTo(rmmView.z * Math.exp(-e.deltaY / 200), n.nx, n.ny, ax, ay, false); return; }
+            var dy = e.deltaY * ((e.deltaMode == 1) ? 33 : ((e.deltaMode == 2) ? 300 : 1));
+            rmmScrollUnits(-dy * RMM_WHEEL_PER_PX, rmmAreaToRemote(ax, ay));
+        }
+
+        //
+        // The handle and the panel
+        //
+
+        function rmmSetupHandle() {
+            var h = Q('rmmHandle'), st = null;
+            var pos = rmmStoreGet('nordbaseRemote.handle');
+            if (pos && (typeof pos.x == 'number') && (typeof pos.y == 'number')) { setTimeout(function () { rmmPlaceHandle(pos.x, pos.y); }, 0); }
+            h.addEventListener('pointerdown', function (e) { e.preventDefault(); st = { x: e.clientX, y: e.clientY, moved: false, r: h.getBoundingClientRect() }; try { h.setPointerCapture(e.pointerId); } catch (ex) { } });
+            h.addEventListener('pointermove', function (e) {
+                if (!st) return;
+                var dx = e.clientX - st.x, dy = e.clientY - st.y;
+                if (!st.moved && ((Math.abs(dx) + Math.abs(dy)) < 8)) return;
+                st.moved = true;
+                rmmPlaceHandle((st.r.left + dx) / window.innerWidth, (st.r.top + dy) / window.innerHeight);
+            });
+            h.addEventListener('pointerup', function () { if (!st) return; var m = st.moved; st = null; if (m) { rmmStoreSet('nordbaseRemote.handle', rmmHandlePos); } else { rmmPanel(!rmmPanelOpen); } });
+            h.addEventListener('pointercancel', function () { st = null; });
+            h.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false });
+            h.addEventListener('click', function (e) { if (e.detail === 0) { rmmPanel(!rmmPanelOpen); } }); // keyboard (Enter/Space)
+        }
+        function rmmPlaceHandle(fx, fy) {
+            var h = Q('rmmHandle'), s = rmmSafe(), w = h.offsetWidth || 120, hh = h.offsetHeight || 44, W = window.innerWidth, H = window.innerHeight;
+            var x = Math.max(s.l + 4, Math.min(W - s.r - w - 4, fx * W)), y = Math.max(s.t + 4, Math.min(H - s.b - hh - 4, fy * H));
+            h.style.left = x + 'px'; h.style.top = y + 'px';
+            h.classList.add('rmm-moved');
+            rmmHandlePos = { x: x / W, y: y / H };
+        }
+        function rmmPanel(open) {
+            rmmPanelOpen = (open === true);
+            document.body.classList.toggle('rmm-panel-open', rmmPanelOpen);
+            if (rmmPanelOpen) { rmmImeBlur(); rmmUpdateNet(); rmm2UpdateUi(); }
+        }
+        function rmmSetPointerMode(m) {
+            if ((m != 'trackpad') && (m != 'touch')) return;
+            rmmEndOne(); rmmG = null;
+            rmmPrefs.pointer = m;
+            rmmSavePrefs();
+            rmmUpdateUi();
+        }
+
+        //
+        // Phone keyboard and key bar. The keyboard types into a hidden field; every change of that field
+        // is sent as Backspace + the new characters (works with autocorrect, word suggestions and the
+        // keyboards that compose whole words). The field never keeps more than a few characters.
+        //
+
+        function rmmSetupKeyBar() {
+            var b = Q('rmmKeyBar').querySelectorAll('.rmm-btn');
+            for (var i = 0; i < b.length; i++) {
+                (function (btn) {
+                    var t = null;
+                    btn.setAttribute('tabindex', '-1');
+                    // A tap must not take the focus from the hidden field (the phone keyboard would close).
+                    // The bar can still be scrolled sideways with a finger.
+                    btn.addEventListener('touchstart', function (e) { var p = e.changedTouches[0]; t = { x: p.clientX, y: p.clientY }; }, { passive: true });
+                    btn.addEventListener('touchmove', function (e) { var p = e.changedTouches[0]; if (t && ((Math.abs(p.clientX - t.x) + Math.abs(p.clientY - t.y)) > 10)) { t = null; } }, { passive: true });
+                    btn.addEventListener('touchend', function (e) { if (e.cancelable) { e.preventDefault(); } if (t) { t = null; rmmKeyBarAct(btn); } }, { passive: false });
+                    btn.addEventListener('touchcancel', function () { t = null; });
+                    btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                    btn.addEventListener('click', function () { rmmKeyBarAct(btn); }); // mouse and keyboard; a tap is handled on touchend
+                })(b[i]);
+            }
+        }
+        function rmmKeyBarAct(btn) {
+            var k = btn.getAttribute('data-kb');
+            if (k == 'key') { rmmSendKey(parseInt(btn.getAttribute('data-vk')), btn.getAttribute('data-ext') == '1'); }
+            else if (k == 'mod') { rmmModTap(btn.getAttribute('data-mod')); }
+            else if (k == 'quick') { rmmQuickKey(parseInt(btn.getAttribute('data-quick'))); }
+            else if (k == 'type') { rmmImeBlur(); showDeskType(); }
+            else if (k == 'ime') { if (rmmImeFocused()) { rmmImeBlur(); } else { rmmImeFocus(); } }
+            else if (k == 'close') { rmmKeyboard(false); }
+        }
+        function rmmKeyboard(open) {
+            if (open && (viewOnly == 1)) return;
+            rmmKb.open = (open === true);
+            document.body.classList.toggle('rmm-kb-open', rmmKb.open);
+            if (rmmKb.open) { rmmPanel(false); rmmImeFocus(); } else { rmmImeBlur(); rmmModsReset(); }
+            rmmOnViewport();
+        }
+        function rmmSetupIme() {
+            var t = Q('rmmIme');
+            t.value = RMM_IME_SENTINEL;
+            t.addEventListener('input', rmmImeInput);
+            t.addEventListener('compositionstart', function () { rmmKb.composing = true; });
+            t.addEventListener('compositionend', function () { rmmKb.composing = false; setTimeout(rmmImeInput, 0); });
+            t.addEventListener('keydown', rmmImeKeyDown);
+            t.addEventListener('keyup', function (e) { e.stopPropagation(); });
+            t.addEventListener('keypress', function (e) { e.stopPropagation(); });
+            t.addEventListener('focus', function () { rmmImeCaretEnd(); setTimeout(rmmOnViewport, 50); });
+            t.addEventListener('blur', function () { setTimeout(rmmOnViewport, 50); });
+        }
+        function rmmImeCaretEnd() { var t = Q('rmmIme'); try { var n = t.value.length; t.setSelectionRange(n, n); } catch (ex) { } }
+        function rmmImeReset() { var t = Q('rmmIme'); t.value = RMM_IME_SENTINEL; rmmKb.last = RMM_IME_SENTINEL; rmmImeCaretEnd(); }
+        function rmmImeFocus() { var t = Q('rmmIme'); if (!t || (viewOnly == 1)) return; rmmImeReset(); try { t.focus({ preventScroll: true }); } catch (ex) { t.focus(); } rmmImeCaretEnd(); }
+        function rmmImeBlur() { var t = Q('rmmIme'); if (t && (document.activeElement == t)) { t.blur(); } }
+        function rmmImeFocused() { return document.activeElement == Q('rmmIme'); }
+        function rmmImeInput() {
+            var t = Q('rmmIme'), v = t.value, last = rmmKb.last;
+            if (v === last) return;
+            var p = 0, n = Math.min(v.length, last.length);
+            while ((p < n) && (v.charCodeAt(p) == last.charCodeAt(p))) { p++; }
+            var del = last.length - p, ins = v.substring(p);
+            rmmKb.last = v;
+            for (var i = 0; i < del; i++) { rmmSendKey(8); }
+            if (ins.length > 0) { rmmSendText(ins.replace(/ /g, ' ')); }
+            if (!rmmKb.composing && ((v.length > 40) || (v.indexOf('\n') >= 0) || (v.substring(0, RMM_IME_SENTINEL.length) != RMM_IME_SENTINEL))) { rmmImeReset(); }
+        }
+        function rmmImeKeyDown(e) {
+            e.stopPropagation(); // the page's own key handlers must not send it a second time
+            if (e.isComposing || (e.keyCode == 229)) return;
+            var k = RMM_IME_KEYS[e.key];
+            if (!k && /^F([1-9]|1[0-2])$/.test(e.key || '')) { k = [111 + parseInt(e.key.substring(1)), false]; }
+            if (k) { e.preventDefault(); rmmSendKey(k[0], k[1]); return; }
+            if ((e.ctrlKey || e.metaKey || e.altKey) && (typeof e.key == 'string') && (e.key.length == 1) && rmmInputOk()) {
+                // A keyboard attached to the tablet: Ctrl/Cmd + key = Ctrl + key on the computer.
+                e.preventDefault();
+                var A = desktop.m.KeyAction, add = [], vk = rmmVkForChar(e.key);
+                if (e.ctrlKey || e.metaKey) { add.push(17); }
+                if (e.altKey) { add.push(18); }
+                for (var i = 0; i < add.length; i++) { desktop.m.SendKeyMsgKC(A.DOWN, add[i]); }
+                if (vk != null) { desktop.m.SendKeyMsgKC(A.DOWN, vk); desktop.m.SendKeyMsgKC(A.UP, vk); } else { desktop.m.SendKeyUnicode(A.DOWN, e.key.charCodeAt(0)); desktop.m.SendKeyUnicode(A.UP, e.key.charCodeAt(0)); }
+                for (var j = add.length - 1; j >= 0; j--) { desktop.m.SendKeyMsgKC(A.UP, add[j]); }
+            }
+        }
+
+        // The phone keyboard covers the bottom of the screen: the key bar sits on top of it, and the place
+        // you tapped (Peka) or the pointer (Styrplatta) is moved into view.
+        function rmmOnViewport() {
+            if (!rmmViewActive()) return;
+            var vv = window.visualViewport, ih = window.innerHeight, bottom = ih;
+            if (vv) { bottom = vv.offsetTop + vv.height; }
+            var kbUp = (ih - bottom) > 80;
+            document.body.classList.toggle('rmm-kb-up', kbUp);
+            var bar = Q('rmmKeyBar'), barH = 0;
+            if (bar) {
+                if (rmmKb.open) { barH = bar.offsetHeight || 56; }
+                if (rmmKb.open && kbUp) { bar.style.top = (bottom - barH) + 'px'; bar.style.bottom = 'auto'; } else { bar.style.top = ''; bar.style.bottom = ''; }
+            }
+            var visBottom = (kbUp ? bottom : ih) - barH;
+            var kbTop = (visBottom < (ih - 1)) ? visBottom : null;
+            if (kbTop !== rmmView.kbTop) {
+                rmmView.kbTop = kbTop;
+                if (rmmView.fit) {
+                    rmmClamp();
+                    if (kbTop != null) { if ((rmmPrefs.pointer == 'touch') && rmmLastTap) { rmmFollow(rmmLastTap.nx, rmmLastTap.ny); } else { rmmFollow(rmmPtr.nx, rmmPtr.ny); } }
+                    rmmViewApply();
+                }
+            }
+        }
+
+        //
+        // Networks that change (wifi <-> mobile data, screen locked and back): check the link at once.
+        //
+
+        function rmmNetChanged(why) {
+            rmmStats.netChecks++;
+            if ((desktop == null) && (why == 'online') && (rmmDesktopReconnectTimer != null) && rmmDesktopReconnectEnabled && !shareIsExpired()) {
+                clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; // the network is back: try now, not in 5 s
+                connectDesktop(null, 1);
+                return;
+            }
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) return;
+            var now = Date.now();
+            rmmNet.checkFrom = now; rmmNet.checkUntil = now + 2500;
+            if ((why == 'connection') || (why == 'online')) { rmmNet.rtts = []; } // another network: its normal delay is measured anew
+            rmmNet.lastProbe = rmmNet.lastReply; // allow a probe now even if one is outstanding
+            rmmProbe();
+            setTimeout(rmmTick, 2550); // check at the deadline, not at the next whole second
+        }
+        function rmmWakeLockOn() {
+            if (!rmmViewActive() || rmmWakeLock || document.hidden || !navigator.wakeLock || (desktop == null) || (desktop.State != 3)) return;
+            try { navigator.wakeLock.request('screen').then(function (l) { rmmWakeLock = l; l.addEventListener('release', function () { rmmWakeLock = null; }); }).catch(function () { }); } catch (ex) { }
+        }
+        function rmmWakeLockOff() { if (rmmWakeLock) { try { rmmWakeLock.release(); } catch (ex) { } rmmWakeLock = null; } }
+
+        // A switch from the direct path to the relay reconnects without showing "Ansluter igen…" for a moment.
+        function rmmQuietNow() { return Date.now() < rmmQuietUntil; }
+        function rmmReconnectShown() { var o = Q('rmmReconnect'); return !!(o && o.classList.contains('rmm-show')); }
+        function rmmQuietDefer(kind, delay) {
+            if (rmmQuietTimer != null) return;
+            rmmQuietTimer = setTimeout(function () {
+                rmmQuietTimer = null; rmmQuietUntil = 0;
+                if ((desktop != null) && (desktop.State == 3) && !rmmStale) return; // back already
+                if (rmmStale) { Q('Desk').classList.add('rmm-stale'); }
+                rmmShowReconnect(((desktop != null) && (desktop.State == 3)) ? 'waiting' : 'retry', delay);
+            }, Math.max(0, rmmQuietUntil - Date.now()));
+        }
+
+        //
+        // Direct path (WebRTC). The offer and answer go as control messages inside the share's own desktop
+        // relay (the agent answers them itself, MeshAgent "offer"/"answer"/"webrtc0..2"). Screen and input
+        // move to the data channel only after both sides confirm. Any failure before that: nothing changes,
+        // the relay keeps going. If the direct path breaks later: a quiet reconnect over the relay.
+        //
+
+        function rmmRtcWanted(d) {
+            return rmmRtcAllowed && (rmmPrefs.direct !== false) && (typeof RTCPeerConnection == 'function') && (Date.now() > rmmRtc.coolUntil)
+                && (d != null) && (d.contype == 1) && (d.serverIsRecording !== true); // a recorded session stays on the relay, where it is recorded
+        }
+        function rmmRtcHook(d) {
+            d.attemptWebRTC = false; // agent-redir's own attempt stays off: it would end the session on any WebRTC error
+            var orig = d.xxOnControlCommand;
+            d.xxOnControlCommand = function (msg) { if (rmmRtcControl(d, msg)) return; return orig.call(d, msg); };
+        }
+        function rmmRtcSet(state, reason) { rmmRtc.state = state; if (reason !== undefined) { rmmRtc.reason = reason; } rmmUpdateNet(); }
+        function rmmRtcStart(d) {
+            rmmRtcClose();
+            if (!rmmRtcWanted(d)) { if ((rmmRtc.state != 'cool') && (rmmRtc.state != 'failed')) { rmmRtcSet('off'); } else if (Date.now() > rmmRtc.coolUntil) { rmmRtcSet('off'); } return; }
+            var pc, dc;
+            try { pc = new RTCPeerConnection(rmmRtcConfig || undefined); dc = pc.createDataChannel('DataChannel', {}); } catch (ex) { rmmRtcFail('create'); return; }
+            rmmRtc.d = d; rmmRtc.pc = pc; rmmRtc.dc = dc;
+            rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null; rmmRtc.cand = null;
+            d.webrtc = pc; // agent-redir's Stop() closes it too
+            rmmStats.offers++;
+            rmmRtcSet('trying', '');
+            dc.binaryType = 'arraybuffer';
+            dc.onmessage = function (e) { if ((rmmRtc.dc === dc) && (desktop === d)) { d.xxOnMessage(e); } };
+            dc.onopen = function () { if (rmmRtc.dc !== dc) return; rmmRtc.dcOpen = true; rmmRtcSwitch(); };
+            dc.onclose = function () { if (rmmRtc.dc !== dc) return; if ((rmmRtc.state == 'direct') || rmmRtc.switching) { rmmRtcLost('channel-closed'); } else { rmmRtcFail('channel-closed'); } };
+            pc.oniceconnectionstatechange = function () {
+                if (rmmRtc.pc !== pc) return;
+                var s = pc.iceConnectionState;
+                if (s == 'failed') { if ((rmmRtc.state == 'direct') || rmmRtc.switching) { rmmRtcLost('ice-failed'); } else { rmmRtcFail('ice-failed'); } }
+                else if ((s == 'disconnected') && (rmmRtc.state == 'direct')) {
+                    if (rmmRtc.discTimer) { clearTimeout(rmmRtc.discTimer); }
+                    rmmRtc.discTimer = setTimeout(function () { rmmRtc.discTimer = null; if ((rmmRtc.pc === pc) && (pc.iceConnectionState == 'disconnected')) { rmmRtcLost('ice-disconnected'); } }, 4000);
+                } else if (((s == 'connected') || (s == 'completed')) && rmmRtc.discTimer) { clearTimeout(rmmRtc.discTimer); rmmRtc.discTimer = null; }
+            };
+            rmmRtc.timer = setTimeout(function () {
+                rmmRtc.timer = null;
+                if ((rmmRtc.pc !== pc) || (rmmRtc.state == 'direct')) return;
+                if (rmmRtc.switching) { rmmRtcLost('switch'); } else { rmmRtcFail('timeout'); }
+            }, RMM_RTC_TIMEOUT);
+            var sent = false;
+            var send = function () {
+                if (sent || (rmmRtc.pc !== pc) || (desktop !== d) || (d.State != 3) || !pc.localDescription) return;
+                sent = true;
+                try { d.sendCtrlMsg(JSON.stringify({ type: 'offer', sdp: pc.localDescription.sdp })); } catch (ex) { rmmRtcFail('offer'); }
+            };
+            pc.onicecandidate = function (e) { if (e.candidate == null) { send(); } };
+            pc.onicegatheringstatechange = function () { if (pc.iceGatheringState == 'complete') { send(); } };
+            pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).then(function () { if (pc.iceGatheringState == 'complete') { send(); } else { setTimeout(send, 3000); } }).catch(function () { if (rmmRtc.pc === pc) { rmmRtcFail('offer'); } });
+        }
+        function rmmRtcControl(d, msg) {
+            if ((rmmRtc.d !== d) || (rmmRtc.pc == null) || (typeof msg != 'string') || (msg.indexOf('"type"') < 0)) return false;
+            var c = null;
+            try { c = JSON.parse(msg); } catch (ex) { return false; }
+            if (!c || (String(c.ctrlChannel) != '102938')) return false;
+            var pc = rmmRtc.pc;
+            if ((c.type == 'answer') && (typeof c.sdp == 'string')) {
+                pc.setRemoteDescription({ type: 'answer', sdp: c.sdp }).catch(function () { if (rmmRtc.pc === pc) { rmmRtcFail('answer'); } });
+                return true;
+            }
+            if (c.type == 'webrtc0') { rmmRtc.agentReady = true; rmmRtcSwitch(); return true; }                     // the agent's data channel is open
+            if (c.type == 'webrtc1') { d.sendCtrlMsg('{"ctrlChannel":"102938","type":"webrtc2"}'); return true; }     // the agent stopped sending the screen on the relay
+            if (c.type == 'webrtc2') { rmmRtcDirect(); return true; }                                                 // the agent reads input from the data channel now
+            return false;
+        }
+        function rmmRtcSwitch() {
+            var d = rmmRtc.d;
+            if (!d || !rmmRtc.dcOpen || !rmmRtc.agentReady || rmmRtc.switching || (rmmRtc.state == 'direct')) return;
+            rmmRtc.switching = true;
+            d.sendCtrlMsg('{"ctrlChannel":"102938","type":"webrtc0"}'); // screen over WebRTC from now on
+            d.sendCtrlMsg('{"ctrlChannel":"102938","type":"webrtc1"}'); // no more input on the relay
+        }
+        function rmmRtcDirect() {
+            var d = rmmRtc.d;
+            if (!d || (rmmRtc.state == 'direct')) return;
+            if (rmmRtc.timer) { clearTimeout(rmmRtc.timer); rmmRtc.timer = null; }
+            d.webchannel = rmmRtc.dc;
+            d.webSwitchOk = true;
+            d.webRtcActive = true; // agent-redir's send() uses the data channel from now on
+            rmmRtc.switching = false;
+            rmmStats.direct++;
+            rmmRtcSet('direct', '');
+            rmmRtcStats();
+        }
+        function rmmRtcClose() {
+            if (rmmRtc.timer) { clearTimeout(rmmRtc.timer); rmmRtc.timer = null; }
+            if (rmmRtc.discTimer) { clearTimeout(rmmRtc.discTimer); rmmRtc.discTimer = null; }
+            var d = rmmRtc.d, pc = rmmRtc.pc, dc = rmmRtc.dc;
+            rmmRtc.d = null; rmmRtc.pc = null; rmmRtc.dc = null; rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null;
+            if (d) {
+                if (d.webrtc === pc) { d.webrtc = null; }
+                if (d.webchannel === dc) { d.webchannel = null; }
+                d.webRtcActive = false; d.webSwitchOk = false;
+            }
+            if (dc) { dc.onopen = null; dc.onclose = null; dc.onmessage = null; try { dc.close(); } catch (ex) { } }
+            if (pc) { pc.onicecandidate = null; pc.oniceconnectionstatechange = null; pc.onicegatheringstatechange = null; try { pc.close(); } catch (ex) { } }
+        }
+        function rmmRtcCool(ms) { rmmRtc.coolUntil = Date.now() + ms; try { sessionStorage.setItem('nordbaseRemote.rtcCool', String(rmmRtc.coolUntil)); } catch (ex) { } }
+        // Failed before anything moved: close it, stay on the relay, try again in 10 min. Nothing is shown.
+        function rmmRtcFail(reason) {
+            rmmRtcClose();
+            rmmStats.failed++;
+            rmmRtcCool(RMM_RTC_COOL_FAIL);
+            rmmRtcSet('failed', reason);
+        }
+        // Broke after the switch: reconnect over the relay at once, quietly.
+        function rmmRtcLost(reason) {
+            var d = rmmRtc.d;
+            rmmRtcClose();
+            rmmStats.lost++;
+            rmmRtcCool(RMM_RTC_COOL_LOST);
+            rmmRtcSet('failed', reason);
+            rmmQuietUntil = Date.now() + 2500;
+            if (d && (desktop === d)) { try { d.Stop(); } catch (ex) { } }
+        }
+        function rmmRtcStop(why) {
+            if (rmmRtc.state == 'direct') { var d = rmmRtc.d; rmmRtcClose(); rmmRtcSet('off', why); rmmQuietUntil = Date.now() + 2500; if (d && (desktop === d)) { try { d.Stop(); } catch (ex) { } } return; }
+            rmmRtcClose();
+            rmmRtcSet('off', why);
+        }
+        function rmmRtcStats() {
+            var pc = rmmRtc.pc;
+            rmmRtc.statsAt = Date.now();
+            if (!pc || !pc.getStats) return;
+            pc.getStats().then(function (r) {
+                if (rmmRtc.pc !== pc) return;
+                var pair = null, pairId = null, cands = {};
+                r.forEach(function (s) {
+                    if ((s.type == 'transport') && s.selectedCandidatePairId) { pairId = s.selectedCandidatePairId; }
+                    if ((s.type == 'candidate-pair') && (s.state == 'succeeded') && (s.nominated || s.selected) && !pair) { pair = s; }
+                    if ((s.type == 'local-candidate') || (s.type == 'remote-candidate')) { cands[s.id] = s; }
+                });
+                if (pairId && r.get && r.get(pairId)) { pair = r.get(pairId); }
+                if (!pair) return;
+                if (typeof pair.currentRoundTripTime == 'number') { rmmRtc.rtt = Math.round(pair.currentRoundTripTime * 1000); }
+                var l = cands[pair.localCandidateId], rc = cands[pair.remoteCandidateId];
+                rmmRtc.cand = ((l && (l.candidateType == 'relay')) || (rc && (rc.candidateType == 'relay'))) ? 'relay' : ((l && l.candidateType) ? l.candidateType : 'host');
+                rmmUpdateNet();
+            }).catch(function () { });
+        }
+        function rmmPathText(long) {
+            if (rmmRtc.state == 'direct') {
+                if (rmmRtc.cand == 'relay') return long ? 'via en TURN-server (WebRTC)' : 'Via TURN';
+                return long ? 'direkt till datorn (WebRTC)' : 'Direkt';
+            }
+            return long ? 'via servern' : 'Via servern';
+        }
+        function rmmRtcInfoText() {
+            if (!rmmRtcAllowed) return 'Avstängt på servern. Bilden går via servern.';
+            if (rmmPrefs.direct === false) return 'Av. Bilden går via servern.';
+            if (typeof RTCPeerConnection != 'function') return 'Webbläsaren kan inte. Bilden går via servern.';
+            switch (rmmRtc.state) {
+                case 'direct': return 'Direkt till datorn nu' + ((rmmRtc.rtt != null) ? (', ' + rmmRtc.rtt + ' ms') : '') + '.';
+                case 'trying': return 'Provar direktväg…';
+                case 'failed': return 'Direktvägen gick inte (' + (RMM_RTC_REASONS[rmmRtc.reason] || rmmRtc.reason || 'okänt') + '). Bilden går via servern. Nytt försök ' + ((rmmRtc.coolUntil > Date.now()) ? ('om ' + Math.max(1, Math.round((rmmRtc.coolUntil - Date.now()) / 60000)) + ' min') : 'vid nästa anslutning') + '.';
+                case 'cool': return 'Via servern. Nytt försök om ' + Math.max(1, Math.round((rmmRtc.coolUntil - Date.now()) / 60000)) + ' min.';
+            }
+            return 'Provas när datorn ansluter.';
+        }
+
+        //
+        // Buttons and texts of the phone view, and what happens when the desktop connects or drops.
+        //
+
+        function rmm2UpdateUi() {
+            if (!rmmViewActive()) return;
+            var b = document.querySelectorAll('#rmmPanel [data-pm]'), i;
+            for (i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', (b[i].getAttribute('data-pm') == rmmPrefs.pointer) ? 'true' : 'false'); }
+            var hint = (rmmPrefs.pointer == 'trackpad')
+                ? '<li><b>Dra</b> med ett finger: flytta pekaren</li><li><b>Tryck</b>: klick</li><li><b>Tryck med två fingrar</b>: högerklick</li><li><b>Dra med två fingrar</b>: rulla</li><li><b>Håll kvar och dra</b>: dra och släpp</li>'
+                : '<li><b>Tryck</b> där du vill klicka</li><li><b>Håll kvar</b>: högerklick</li><li><b>Håll kvar och dra</b>: dra och släpp</li><li><b>Dra</b>: flytta bilden, eller rulla</li><li><b>Dra med två fingrar</b>: rulla</li>';
+            hint += '<li><b>Nyp</b>: zooma. <b>Dubbeltryck</b> när bilden är liten: zooma in</li>';
+            if (Q('rmmHint') && (Q('rmmHint').getAttribute('data-pm') != rmmPrefs.pointer)) { Q('rmmHint').innerHTML = hint; Q('rmmHint').setAttribute('data-pm', rmmPrefs.pointer); }
+            var connected = (desktop != null) && (desktop.State == 3);
+            var inputs = document.querySelectorAll('#rmmPanel .rmm-input');
+            for (i = 0; i < inputs.length; i++) { inputs[i].style.display = (viewOnly == 1) ? 'none' : ''; inputs[i].disabled = !connected; }
+            QV('rmmMClip', viewOnly != 1);
+            QE('rmmMClip', connected && shareControlReady);
+            QV('rmmMEnd', (desktop != null) && (desktop.State != 0));
+            if ((viewOnly == 1) && rmmKb.open) { rmmKeyboard(false); }
+            rmmPointerPlace();
+        }
+        function rmm2OnDesktopUp() {
+            rmmModsReset(); // a new session: nothing is held
+            rmmRtcStart(desktop);
+            rmmWakeLockOn();
+            rmm2UpdateUi();
+            if (rmmViewActive()) { deskAdjust(); }
+        }
+        function rmm2OnDesktopDown() {
+            if (rmmG && (rmmG.kind == 'one')) { if (rmmG.hold) { clearTimeout(rmmG.hold); } rmmG.drag = false; }
+            rmmG = null; rmmPts = {};
+            if (rmmPendingTap) { clearTimeout(rmmPendingTap.timer); rmmPendingTap = null; }
+            if (rmmMoveTimer != null) { clearTimeout(rmmMoveTimer); rmmMoveTimer = null; }
+            rmmMods = { ctrl: 0, alt: 0, win: 0 }; rmmModsUi();
+            rmmRtcClose();
+            if ((rmmRtc.state == 'direct') || (rmmRtc.state == 'trying')) { rmmRtc.state = 'off'; }
+            rmmWakeLockOff();
+            rmmMarkOff();
+            rmmPointerPlace();
+        }
 
         start();
     </script>
