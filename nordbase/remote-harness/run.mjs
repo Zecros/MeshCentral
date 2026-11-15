@@ -2,7 +2,7 @@
 // Nordbase Remote step 1: local harness for the share page (views/sharing.handlebars).
 // Starts a fake share server + relay + agent, opens the real page in headless Chrome and checks
 // scaling, quality switching, screens, Mac -> Windows keys (exact bytes), quick keys, reconnect,
-// the connection indicator, Auto, WebP fallback, share expiry and that the clipboard never moves by itself.
+// the connection indicator, Auto, JPEG only (step 3), broken tiles, share expiry and that the clipboard never moves by itself.
 //
 //   node nordbase/remote-harness/run.mjs [--out <dir>] [--quick]
 //
@@ -13,11 +13,13 @@ import path from 'node:path';
 import { startHarnessServer } from './harness-server.mjs';
 import { launchChrome, CDP, sleep } from './cdp.mjs';
 import { runStep2 } from './step2.mjs';
+import { runStep3 } from './step3.mjs';
 
 const args = process.argv.slice(2);
 const outDir = path.resolve(args.includes('--out') ? args[args.indexOf('--out') + 1] : path.join(os.tmpdir(), 'nordbase-remote-harness'));
 const quick = args.includes('--quick');
-const step2Only = args.includes('--step2'); // only the step 2 checks (phone, keyboard, WebRTC)
+const step2Only = args.includes('--step2'); // only the step 2 checks (phone, keyboard, WebRTC) and step 3
+const step3Only = args.includes('--step3'); // only the step 3 checks (scaling, Ctrl+Alt+Del across path switches)
 fs.mkdirSync(outDir, { recursive: true });
 
 const results = [];
@@ -86,7 +88,7 @@ try {
         await page.eval("document.getElementById('Desk') && document.getElementById('Desk').focus(); true");
     }
 
-    if (!step2Only) {
+    if (!step2Only && !step3Only) {
     // ---------------------------------------------------------------- first load, Auto, scaling
     await page.eval('localStorage.clear(); true').catch(() => { });
     await load();
@@ -95,8 +97,8 @@ try {
     await connected();
     await sleep(800);
     let c = lastComp();
-    check('Bild: WebP begärs när webbläsaren klarar det', c && c.type === 4, c);
-    check('Auto startar på kvalitet 50 och 20 bilder/s', c && c.q === 50 && c.fr === 50, c);
+    check('Bild: JPEG begärs (steg 3: agenten kan inte göra WebP, så sidan ber inte om det)', c && c.type === 1 && agent.log.compression.every((x) => x.type === 1), c);
+    check('Auto startar på JPEG-kvalitet 60 och 20 bilder/s', c && c.q === 60 && c.fr === 50, c);
     // Window 1280x800, left bar 54 px, bars 2 x 52 px: area 1226 x 696. 4K screen: 1226/3840 = 0.32 -> 384 (37.5 %).
     check('Skalning till fönstret: 4K-skärm i 1280-fönster ger 37,5 %', c && c.scaling === 384, c);
     const canvasW = await page.eval("document.getElementById('Desk').width");
@@ -106,14 +108,14 @@ try {
 
     // ---------------------------------------------------------------- quality control
     await page.click('#rmmQuality [data-q="sharp"]');
-    c = await waitComp((x) => x.q === 60, 3000, 'skarp');
-    check('Skarp: kvalitet 60 (taket utan allowHighQualityDesktop), 20 bilder/s, full skalning för fönstret', c.q === 60 && c.fr === 50 && c.scaling === 384, c);
+    c = await waitComp((x) => x.q === 80, 3000, 'skarp');
+    check('Skarp: JPEG-kvalitet 80, 20 bilder/s, full skalning för fönstret', c.q === 80 && c.fr === 50 && c.scaling === 384, c);
     await page.click('#rmmQuality [data-q="fast"]');
-    c = await waitComp((x) => x.q === 30, 3000, 'snabb');
-    check('Snabb: kvalitet 30, 10 bilder/s, mindre bild (25 %)', c.fr === 100 && c.scaling === 256, c);
+    c = await waitComp((x) => x.q === 40, 3000, 'snabb');
+    check('Snabb: kvalitet 40, 10 bilder/s, mindre bild (25 %)', c.fr === 100 && c.scaling === 256, c);
     check('Valet sparas i webbläsaren', (await page.eval("JSON.parse(localStorage.getItem('nordbaseRemote.v1')).quality")) === 'fast');
     await page.click('#rmmQuality [data-q="auto"]');
-    c = await waitComp((x) => x.q === 50 && x.scaling === 384, 3000, 'auto');
+    c = await waitComp((x) => x.q === 60 && x.scaling === 384, 3000, 'auto');
     check('Tillbaka till Auto', true, c);
 
     // ---------------------------------------------------------------- fit / 100 %
@@ -310,22 +312,18 @@ try {
     check('Död länk upptäcks och återansluts (inom cirka 12–16 s)', detected !== null && detected < 20000, { ms: detected });
     await connected(10000);
 
-    // ---------------------------------------------------------------- WebP fallback
-    agent.cfg.nowebp = true;
-    agent.drop(0);
-    await connected(10000);
+    // ---------------------------------------------------------------- picture format (step 3: JPEG only)
     await sleep(1500);
     const info = await page.eval('rmmInfoText()');
-    check('Agent utan WebP: JPEG ritas och syns som "JPEG (datorn skickar inte WebP)"', (await page.eval('rmmAgentFormat')) === 'jpeg' && info.indexOf('JPEG (datorn skickar inte WebP)') === 0, info);
-    agent.cfg.nowebp = false;
+    check('Bildformat: JPEG ritas och visas som JPEG, ingen WebP nämns', (await page.eval('rmmAgentFormat')) === 'jpeg' && info.indexOf('JPEG') === 0 && !/webp/i.test(info) && !/webp/i.test(await page.eval('document.body.innerText')), info);
     agent.drop(0);
     await connected(10000);
     await sleep(800);
-    agent.cfg.corruptWebp = 3;
-    c = await waitComp((x) => x.type === 1, 10000, 'jpeg fallback');
-    await sleep(1500);
-    const drawn = await page.eval('({ broken: rmmWebpBroken, pending: desktop.m.PendingOperations.length, fmt: rmmAgentFormat })');
-    check('WebP som inte går att avkoda: bilden fastnar inte och sidan byter till JPEG', drawn.broken >= 3 && drawn.pending < 5 && drawn.fmt === 'jpeg', Object.assign({ comp: c }, drawn));
+    const req0 = agent.log.compression.length, drawn0 = await page.eval('rmmStats.drawn || 0');
+    agent.cfg.corrupt = 3;
+    await sleep(2500);
+    const drawn = await page.eval('({ broken: rmmBrokenTiles, pending: desktop.m.PendingOperations.length, fmt: rmmAgentFormat, drawn: rmmStats.drawn || 0 })');
+    check('Bildruta som inte går att avkoda: hoppas över, bilden fastnar inte, sidan ber om en ny bild', drawn.broken >= 3 && drawn.pending < 5 && drawn.drawn > drawn0 && agent.log.compression.length > req0, drawn);
 
     // ---------------------------------------------------------------- end session and reconnect by hand
     const connectsEnd = agent.log.connects.length;
@@ -346,7 +344,7 @@ try {
     await load();
     await connected();
     await sleep(1200);
-    check('Efter omladdning: Skarp är kvar', (await page.eval("document.querySelector('#rmmQuality [data-q=\"sharp\"]').getAttribute('aria-pressed')")) === 'true' && agent.log.compression.some((x) => x.q === 60));
+    check('Efter omladdning: Skarp är kvar', (await page.eval("document.querySelector('#rmmQuality [data-q=\"sharp\"]').getAttribute('aria-pressed')")) === 'true' && agent.log.compression.some((x) => x.q === 80));
     check('Efter omladdning: vald skärm (2) väljs igen', agent.log.setDisplay.includes(2), { sdBefore, setDisplay: agent.log.setDisplay });
 
     // ---------------------------------------------------------------- clipboard safety
@@ -377,7 +375,10 @@ try {
     // ---------------------------------------------------------------- step 2: phone, tablet, keyboard, WebRTC
     // (Step 1's 390 px check of the two toolbars is replaced: on a phone the toolbars give way to the mobile view.)
     const offersBefore = agent.totalOffers || 0;
-    await runStep2({ page, cdp, agent, check, outDir, load, connected, lastComp, waitComp, fmtKeys, peerPage, quick, offersBefore });
+    if (!step3Only) { await runStep2({ page, cdp, agent, check, outDir, load, connected, lastComp, waitComp, fmtKeys, peerPage, quick, offersBefore }); }
+
+    // ---------------------------------------------------------------- step 3: scaling with a real agent's habits, Ctrl+Alt+Del across path switches
+    await runStep3({ page, agent, check, outDir, load, connected, peerPage });
 
     check('Inga JavaScript-fel på sidan', page.errors.length === 0, page.errors.slice(0, 5));
 } catch (ex) {

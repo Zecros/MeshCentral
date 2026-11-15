@@ -72,7 +72,7 @@ export async function runStep2(ctx) {
     check('Telefon: datorns skärm fyller telefonens bredd', near(v.rect.w, 390, 1), v.rect);
     let c = lastComp();
     const slow = await page.eval('({ cellular: rmmDev.cellular, type: navigator.connection ? (navigator.connection.type || "") : "", effective: navigator.connection ? navigator.connection.effectiveType : "" })');
-    check('Telefon: Auto börjar lägre (kvalitet 40, 12,5 bilder/s; ett steg till om nätet är mobildata eller långsamt)', c && (slow.cellular ? ((c.q === 35) && (c.fr === 100)) : ((c.q === 40) && (c.fr === 80))), Object.assign({}, c, slow));
+    check('Telefon: Auto börjar lägre (kvalitet 50, 12,5 bilder/s; ett steg till om nätet är mobildata eller långsamt)', c && (slow.cellular ? ((c.q === 45) && (c.fr === 100)) : ((c.q === 50) && (c.fr === 80))), Object.assign({}, c, slow));
     check('Telefon: 4K-skärm skickas som 25 % (960x540), inte 4K', c && (c.scaling === 256) && (v.cw === 960), { scaling: c && c.scaling, canvas: v.cw + 'x' + v.ch });
 
     // ---------------------------------------------------------------- panel
@@ -362,8 +362,8 @@ export async function runStep2(ctx) {
     await sleep(1200);
     check('Panelen: Skärm 2 byter skärm', agent.log.setDisplay.includes(2) && (await page.eval("document.querySelector('#rmmMDisplays [data-display=\"2\"]').getAttribute('aria-pressed')")) === 'true', agent.log.setDisplay);
     await page.tapEl('#rmmPanel [data-q="fast"]');
-    c = await waitComp((x) => x.q === 30, 3000, 'snabb på telefon');
-    check('Panelen: Snabb fungerar på telefon', c.q === 30, c);
+    c = await waitComp((x) => x.q === 40, 3000, 'snabb på telefon');
+    check('Panelen: Snabb fungerar på telefon', c.q === 40, c);
     await page.tapEl('#rmmPanel [data-q="auto"]');
     await sleep(300);
     await panel(false);
@@ -471,7 +471,7 @@ export async function runStep2(ctx) {
     tracker.tablet = await page.eval('({ dev: rmmDev, step: rmmAutoStep, comps: null })');
     tracker.tablet.comps = agent.log.compression.slice(-4);
     const tcell = await page.eval('rmmDev.cellular');
-    check('Surfplatta: mobilvyn, Auto börjar som på datorn (kvalitet 50, 40 på långsamt nät), högst 2560x1600 pixlar', (await page.eval('rmmDev.tablet && !rmmDev.phone')) && c.q === (tcell ? 40 : 50) && (v.cw * v.ch) <= 2560 * 1600, { q: c.q, cellular: tcell, scaling: c.scaling, canvas: v.cw + 'x' + v.ch });
+    check('Surfplatta: mobilvyn, Auto börjar som på datorn (kvalitet 60, 50 på långsamt nät), högst 2560x1600 pixlar', (await page.eval('rmmDev.tablet && !rmmDev.phone')) && c.q === (tcell ? 50 : 60) && (v.cw * v.ch) <= 2560 * 1600, { q: c.q, cellular: tcell, scaling: c.scaling, canvas: v.cw + 'x' + v.ch });
     await panel(true);
     await shot('surfplatta-panel.png');
     await panel(false);

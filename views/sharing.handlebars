@@ -1062,13 +1062,6 @@
                         </select>
                     </div>
                     <div>
-                        <div>Bildformat</div>
-                        <select id="d7rmmEncoding">
-                            <option value="auto">WebP om det går (bäst)</option>
-                            <option value="jpeg">Alltid JPEG</option>
-                        </select>
-                    </div>
-                    <div>
                         <div>Väg</div>
                         <div>
                             <label style="display:block"><input type="checkbox" id="d7rmmDirect" />Direkt till datorn när det går (WebRTC)</label>
@@ -1503,7 +1496,8 @@
             QE('DeskType', deskState == 3);
             QV('DeskType', viewOnly != 1);
             var quick = document.querySelectorAll('.rmm-quick');
-            for (var qi = 0; qi < quick.length; qi++) { quick[qi].disabled = (deskState != 3); quick[qi].style.display = (viewOnly == 1) ? 'none' : ''; }
+            var quietSwitch = (typeof rmmQuietNow == 'function') && (rmmQuietNow() || (rmmQuietTimer != null));
+            for (var qi = 0; qi < quick.length; qi++) { quick[qi].disabled = (deskState != 3) && !quietSwitch; quick[qi].style.display = (viewOnly == 1) ? 'none' : ''; }
             QV('rmmMacButton', viewOnly != 1);
             QV('DeskWD', viewOnly != 1);
             QE('DeskWD', deskState == 3);
@@ -3397,7 +3391,7 @@
 
         //
         // Nordbase Remote step 1 (2026-11-15)
-        // Quality (Auto / Skarp / Snabb), WebP with a clean JPEG fallback, scaling to the window, one
+        // Quality (Auto / Skarp / Snabb), JPEG tiles (step 3: MeshAgent cannot make WebP), scaling to the window, one
         // button per screen, quick keys, Mac -> Windows keyboard, reconnect with back-off and a connection
         // indicator. Nothing here opens a new connection or sends data anywhere new: everything goes over
         // the share's existing desktop relay, and only while it is connected. The clipboard rules of
@@ -3409,17 +3403,20 @@
         var RMM_DEAD_MS = 12000;   // no probe answer and no data for this long: the link is dead, reconnect
         // Auto ladder. q = image quality (1-100), fr = minimum ms between frames (50 = 20 frames/s),
         // f = share of the window's real pixel size that is asked for (becomes the agent's scaling).
+        // Step 3: tuned for JPEG, the only format MeshAgent makes (Windows encodes with GDI+, Linux and macOS with
+        // libjpeg-turbo; no agent build has a WebP encoder). Below about 40 JPEG smears small text and bands colour,
+        // so the ladder lowers frame rate and picture size before quality, and never goes under 30.
         var RMM_LADDER = [
+            { q: 70, fr: 50, f: 1.0 },
             { q: 60, fr: 50, f: 1.0 },
-            { q: 50, fr: 50, f: 1.0 },
-            { q: 40, fr: 80, f: 1.0 },
-            { q: 35, fr: 100, f: 0.85 },
-            { q: 30, fr: 150, f: 0.7 },
-            { q: 25, fr: 250, f: 0.55 },
-            { q: 20, fr: 400, f: 0.45 }
+            { q: 50, fr: 80, f: 1.0 },
+            { q: 45, fr: 100, f: 0.85 },
+            { q: 40, fr: 150, f: 0.7 },
+            { q: 35, fr: 250, f: 0.55 },
+            { q: 30, fr: 400, f: 0.45 }
         ];
         var RMM_AUTO_START = 1;
-        var RMM_PROFILES = { sharp: { q: 70, fr: 50, f: 1.0 }, fast: { q: 30, fr: 100, f: 0.6 } };
+        var RMM_PROFILES = { sharp: { q: 80, fr: 50, f: 1.0 }, fast: { q: 40, fr: 100, f: 0.6 } };
         // Characters a Swedish Windows keyboard makes with AltGr. Typed with Option on a Mac they are sent
         // as the character itself, so they come out right whatever the remote keyboard layout is.
         var RMM_ALTGR_CHARS = '@£$€{[]}\\|~µ';
@@ -3434,18 +3431,21 @@
         };
         var RMM_EXTENDED = ['ShiftRight', 'AltRight', 'ControlRight', 'Home', 'End', 'Insert', 'Delete', 'PageUp', 'PageDown', 'NumpadDivide', 'NumpadEnter', 'NumLock', 'Pause', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
 
-        var rmmPrefs = { quality: 'auto', fit: true, macKeys: null, encoding: 'auto', pointer: 'trackpad', direct: true };
+        var rmmPrefs = { quality: 'auto', fit: true, macKeys: null, pointer: 'trackpad', direct: true };
         var rmmNode = { display: null, native: null };
-        var rmmWebpBrowser = null;    // null = not known yet
-        var rmmWebpBroken = 0;        // WebP tiles this browser could not decode
-        var rmmAgentFormat = null;    // what the agent really sends: 'webp' or 'jpeg'
+        var rmmBrokenTiles = 0;       // tiles this browser could not decode (each one is skipped)
+        var rmmAgentFormat = null;    // what the agent really sends (read from the tile bytes)
         var rmmAutoStep = RMM_AUTO_START;
         var rmmLastSent = null;       // last settings sent to the agent
         var rmmAgentScaling = 1024;   // scaling the agent is using now
         var rmmPendingScaling = null; // scaling sent, waiting for the agent's new screen size
-        var rmmPendingFrom = null;
+        var rmmPendingFrom = null;    // { w, h, s, at }: screen size and confirmed scaling when it was sent
         var rmmPendingTimer = null;
-        var rmmScalingIgnored = false;
+        // Step 3: the agent repeats its screen size (twice at the start, and late copies can arrive), so one
+        // size message never decides alone. prev = the size before the last confirmed change (a late copy of it
+        // is dropped), dropped = such a copy (taken back if the tiles show it was real), tiles = how far the
+        // tiles reach since the request, ignoredUntil = stop asking for a while when the agent clearly does not scale.
+        var rmmScale = { prev: null, dropped: null, tiles: null, retries: 0, ignoredUntil: 0, stale: 0, log: [] };
         var rmmNative = null;         // remote screen size at 100 %
         var rmmDisplayRestored = false;
         var rmmResizeTimer = null;
@@ -3482,7 +3482,6 @@
                 if (['auto', 'sharp', 'fast'].indexOf(p.quality) >= 0) { rmmPrefs.quality = p.quality; }
                 if (typeof p.fit == 'boolean') { rmmPrefs.fit = p.fit; }
                 if (typeof p.macKeys == 'boolean') { rmmPrefs.macKeys = p.macKeys; }
-                if (p.encoding == 'jpeg') { rmmPrefs.encoding = 'jpeg'; }
                 if ((p.pointer == 'trackpad') || (p.pointer == 'touch')) { rmmPrefs.pointer = p.pointer; }
                 if (p.direct === false) { rmmPrefs.direct = false; }
             }
@@ -3493,9 +3492,7 @@
             }
             deskAspectRatio = rmmPrefs.fit ? 0 : 1;
             rmm2Init(); // step 2: phone/tablet view, gestures, keyboard, direct path, network changes
-            if (typeof check_webp_feature == 'function') {
-                check_webp_feature('lossy', function (f, ok) { rmmWebpBrowser = (ok === true); rmmApplyProfile('webp-check'); });
-            } else { rmmWebpBrowser = false; }
+            // Step 3: no WebP check any more; the agent only makes JPEG.
             // Buttons never take the keyboard focus: the keys belong to the remote computer.
             rmmNoFocus(document.querySelectorAll('.rmm-btn, #DeskType, #DeskClip, #deskActionsSettings, #disconnectbutton1'));
             window.addEventListener('resize', rmmOnWindowResize);
@@ -3545,16 +3542,14 @@
             if (rmmDev.phone) { q = Math.min(q, 60); } // step 2: a phone screen does not need more
             return { q: q, fr: p.fr, f: p.f };
         }
-        // 4 = WebP when this browser decodes it, 1 = JPEG otherwise. If the agent cannot make WebP it
-        // answers with JPEG tiles, which are drawn as they are (the tile type is read from the bytes).
-        function rmmEncoding() {
-            if ((rmmPrefs.encoding == 'jpeg') || (rmmWebpBrowser !== true) || (rmmWebpBroken >= 3)) return 1;
-            return 4;
-        }
+        // Step 3: always 1 = JPEG. MeshAgent as shipped with MeshCentral 1.1.59 has no WebP encoder (Windows uses
+        // GDI+, Linux/macOS libjpeg-turbo): asked for type 4 it answers with JPEG anyway. Tiles are still drawn by
+        // the type read from their bytes, so an agent that one day sends another format is drawn too.
+        function rmmEncoding() { return 1; }
         // Scaling (128 = 12.5 % ... 1024 = 100 %) so the agent sends about as many pixels as the window shows.
         function rmmTargetScaling(f) {
             if (!rmmPrefs.fit && !rmmViewActive()) return 1024;
-            if (rmmScalingIgnored) return rmmAgentScaling;
+            if (Date.now() < rmmScale.ignoredUntil) return rmmAgentScaling;
             var nat = rmmNative || rmmNode.native;
             if ((nat == null) || !nat.w || !nat.h) return null;
             var area = Q('deskarea3x'), cw = area ? area.clientWidth : 0, ch = area ? area.clientHeight : 0;
@@ -3591,13 +3586,14 @@
             if (!force && last && (last.type == type) && (last.q == prof.q) && (last.scaling == scaling) && (last.fr == prof.fr)) { rmmUpdateUi(); return; }
             rmmLastReason = reason || '';
             m.SendCompressionLevel(type, prof.q, scaling, prof.fr);
-            if ((reason == 'webp-error') && m.SendRefresh) { m.SendRefresh(); }
+            if ((reason == 'tile-error') && m.SendRefresh) { m.SendRefresh(); }
             rmmUpdateUi();
         }
 
         function rmmOnDesktopCreated(d) {
             var m = d.m;
-            rmmAgentScaling = 1024; rmmPendingScaling = null; rmmPendingFrom = null; rmmScalingIgnored = false;
+            rmmAgentScaling = 1024; rmmPendingScaling = null; rmmPendingFrom = null; // a new agent session starts at 100 %
+            rmmScale = { prev: null, dropped: null, tiles: null, retries: 0, ignoredUntil: 0, stale: 0, log: rmmScale.log.slice(-20) };
             rmmLastSent = null; rmmAgentFormat = null; rmmNative = null; rmmDisplayRestored = false;
             if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
             var prof = rmmCurrentProfile(), scaling = rmmTargetScaling(prof.f);
@@ -3609,7 +3605,14 @@
             // decoded is skipped instead of holding back every later tile.
             m.ProcessPictureMsg = function (data, X, Y) { rmmProcessPicture(m, data, X, Y); };
             var origScreen = m.ProcessScreenMsg;
-            m.ProcessScreenMsg = function (w, h) { rmmOnScreenSize(m, w, h); var r = origScreen.call(m, w, h); setTimeout(function () { rmmApplyProfile('screen'); }, 0); return r; };
+            m.rmmOrigScreen = origScreen;
+            m.ProcessScreenMsg = function (w, h) {
+                if (rmmOnScreenSize(m, w, h) === false) return; // a late copy of an old size: not shown (step 3)
+                var r = origScreen.call(m, w, h);
+                setTimeout(function () { rmmApplyProfile('screen'); }, 0);
+                rmmSpecialSessionReady();
+                return r;
+            };
             var origSend = m.SendCompressionLevel;
             m.SendCompressionLevel = function (type, level, scaling, frametimer) { origSend.call(m, type, level, scaling, frametimer); rmmNoteSent(m); };
             rmmRtcHook(d); // step 2: the direct path (WebRTC) is negotiated by this page, not by agent-redir
@@ -3623,33 +3626,105 @@
             // Step 2: a new image type or size means a whole new picture arrives at once; that decode burst is not a slow link.
             if ((rmmLastSent == null) || (rmmLastSent.type != s.type) || (rmmLastSent.scaling != s.scaling)) { rmmNet.settleUntil = Date.now() + 2500; }
             var current = (rmmPendingScaling != null) ? rmmPendingScaling : rmmAgentScaling;
-            if (s.scaling != current) {
-                rmmPendingScaling = s.scaling;
-                rmmPendingFrom = { w: m.ScreenWidth, h: m.ScreenHeight, s: current };
-                if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); }
-                rmmPendingTimer = setTimeout(function () {
-                    rmmPendingTimer = null;
-                    if (rmmPendingScaling == null) return;
-                    // No new screen size within 4 s: this agent does not scale. Stop asking.
-                    rmmPendingScaling = null; rmmScalingIgnored = true;
-                    rmmApplyProfile('scaling-timeout');
-                }, 4000);
-            }
+            if (s.scaling != current) { rmmScaleRequest(m, s.scaling); }
             rmmLastSent = s;
         }
 
+        //
+        // Scaling, step 3. A request is confirmed only by the size it should give (old size x new / old scaling,
+        // within 2 px) or, if that message never comes, by the tiles: after a refresh they reach exactly that far.
+        // The old size arriving again while waiting (the agent sends its size twice at the start) says nothing.
+        // A late copy of the old size after a confirmed change is dropped, unless the tiles then prove it real.
+        // No answer within 4 s: ask once more with a refresh; still nothing: stop asking for 60 s, then try again.
+        //
+
+        function rmmScaleLog(t) { rmmScale.log.push(Math.round(performance.now()) + ' ' + t); if (rmmScale.log.length > 40) { rmmScale.log.shift(); } }
+        function rmmScaleRequest(m, sc) {
+            rmmPendingScaling = sc;
+            rmmPendingFrom = { w: m.ScreenWidth, h: m.ScreenHeight, s: rmmAgentScaling, at: Date.now() };
+            rmmScale.tiles = { r: 0, b: 0, n: 0, from: Date.now() + Math.max(600, 2 * (rmmNet.base || 150)) }; // tiles before this are still in flight
+            rmmScaleLog('ask ' + sc + ' from ' + rmmPendingFrom.w + 'x' + rmmPendingFrom.h + '@' + rmmAgentScaling);
+            if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); }
+            rmmPendingTimer = setTimeout(function () { rmmPendingTimer = null; rmmScaleTimeout(m); }, 4000);
+        }
+        function rmmScaleExpected(from, sc) { return { w: Math.round(from.w * sc / from.s), h: Math.round(from.h * sc / from.s) }; }
+        function rmmScaleConfirm(m, how) {
+            var from = rmmPendingFrom;
+            rmmScale.prev = { w: from.w, h: from.h, s: from.s, until: Date.now() + 5000 };
+            rmmAgentScaling = rmmPendingScaling;
+            rmmScaleLog('confirmed ' + rmmAgentScaling + ' (' + how + ')');
+            rmmPendingScaling = null; rmmPendingFrom = null; rmmScale.retries = 0; rmmScale.ignoredUntil = 0;
+            if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
+        }
+        // Returns false when the message is a late copy of an old size and must not resize the picture.
         function rmmOnScreenSize(m, w, h) {
-            if (rmmPendingScaling != null) {
-                var from = rmmPendingFrom;
-                var expectedW = from ? Math.round(from.w * rmmPendingScaling / from.s) : w;
-                if (from && (from.w == w) && (from.h == h) && (Math.abs(expectedW - w) > 2)) { rmmScalingIgnored = true; } else { rmmAgentScaling = rmmPendingScaling; }
-                rmmPendingScaling = null; rmmPendingFrom = null;
-                if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
+            var now = Date.now(), from = rmmPendingFrom, prev = rmmScale.prev;
+            var answer = (rmmPendingScaling != null) && from && (function () { var e = rmmScaleExpected(from, rmmPendingScaling); return (Math.abs(w - e.w) <= 2) && (Math.abs(h - e.h) <= 2); })();
+            // The size we asked for always counts, even when it equals the size before the last change (Snabb, then Auto).
+            if (!answer && prev && (now < prev.until) && (w == prev.w) && (h == prev.h) && !((w == m.ScreenWidth) && (h == m.ScreenHeight))) {
+                rmmScale.dropped = { w: w, h: h, s: prev.s, at: now };
+                rmmScale.stale++;
+                rmmScaleLog('late copy of ' + w + 'x' + h + ' dropped');
+                return false;
             }
-            if ((w > 0) && (h > 0)) {
+            if ((rmmPendingScaling != null) && from) {
+                var e = rmmScaleExpected(from, rmmPendingScaling);
+                if ((Math.abs(w - e.w) <= 2) && (Math.abs(h - e.h) <= 2)) { rmmScaleConfirm(m, 'size'); }
+                else if ((w == from.w) && (h == from.h)) { rmmScale.stale++; rmmScaleLog('old size ' + w + 'x' + h + ' again while waiting: ignored'); }
+                else if ((now - from.at) > Math.max(400, 2 * (rmmNet.base || 150))) {
+                    // Another size altogether (the screen itself changed). The agent has read the request by now.
+                    rmmScaleConfirm(m, 'new screen ' + w + 'x' + h);
+                } else {
+                    rmmPendingFrom = { w: w, h: h, s: from.s, at: from.at }; // the screen changed before the agent read the request
+                    rmmScaleLog('new screen before the answer: ' + w + 'x' + h);
+                }
+            }
+            if ((w > 0) && (h > 0)) { // rmmAgentScaling is the confirmed scaling, the one this size was made with
                 rmmNative = { w: Math.round(w * 1024 / rmmAgentScaling), h: Math.round(h * 1024 / rmmAgentScaling) };
                 rmmNode.native = rmmNative; rmmSaveNode();
             }
+            return true;
+        }
+        // Called for every tile that is drawn: how far do the tiles reach?
+        function rmmScaleTile(m, right, bottom) {
+            var now = Date.now(), t = rmmScale.tiles;
+            if (t && (rmmPendingScaling != null) && (now >= t.from)) { t.r = Math.max(t.r, right); t.b = Math.max(t.b, bottom); t.n++; }
+            // A tile outside the picture right after a dropped copy of the old size: the copy was real after all
+            // (the agent went back, for example after a desktop switch). Use it, and ask for the scaling once more.
+            var d = rmmScale.dropped;
+            if (d && ((right > m.ScreenWidth + 2) || (bottom > m.ScreenHeight + 2)) && (right <= d.w + 2) && (bottom <= d.h + 2) && ((now - d.at) < 15000)) { d.outside = (d.outside || 0) + 1; }
+            if (d && (d.outside >= 3)) { // three tiles, not one straggler
+                rmmScale.dropped = null; rmmScale.prev = null;
+                rmmAgentScaling = d.s;
+                rmmScaleLog('tiles reach ' + right + 'x' + bottom + ': the dropped size was real, back to ' + d.s);
+                m.rmmOrigScreen.call(m, d.w, d.h);
+                setTimeout(function () { rmmApplyProfile('scaling-reask', true); }, 0);
+            }
+        }
+        function rmmScaleTimeout(m) {
+            if ((rmmPendingScaling == null) || !rmmPendingFrom || (desktop == null) || (desktop.m !== m)) return;
+            var from = rmmPendingFrom, e = rmmScaleExpected(from, rmmPendingScaling), t = rmmScale.tiles || { n: 0 };
+            if ((t.n > 0) && (t.r <= e.w + 2) && (t.b <= e.h + 2) && (t.r >= e.w - 80) && (t.b >= e.h - 80) && ((e.w < from.w) || (e.h < from.h))) {
+                // The size message never came, but the tiles are exactly the new size: the agent did scale.
+                rmmScaleConfirm(m, 'tiles ' + t.r + 'x' + t.b);
+                m.rmmOrigScreen.call(m, e.w, e.h);
+                rmmApplyProfile('screen');
+                return;
+            }
+            var tooBig = (t.n > 0) && ((t.r > e.w + 8) || (t.b > e.h + 8));
+            if (!tooBig && (rmmScale.retries < 1)) {
+                rmmScale.retries++;
+                rmmScaleLog('no answer to ' + rmmPendingScaling + ': asking once more, with a refresh');
+                var sc = rmmPendingScaling;
+                rmmPendingScaling = null; rmmPendingFrom = null;
+                m.SendCompressionLevel(m.ImageType, m.CompressionLevel, sc, m.FrameRateTimer); // -> rmmNoteSent -> a new request
+                if (m.SendRefresh) { m.SendRefresh(); }
+                return;
+            }
+            rmmScaleLog(tooBig ? ('tiles still reach ' + t.r + 'x' + t.b + ': this agent does not scale') : 'still no answer');
+            rmmPendingScaling = null; rmmPendingFrom = null; rmmScale.retries = 0;
+            rmmScale.ignoredUntil = Date.now() + 60000; // try again in a minute, not never
+            rmmApplyProfile('scaling-timeout');
         }
 
         function rmmTileFormat(b) {
@@ -3668,7 +3743,7 @@
             try { url = URL.createObjectURL(new Blob([bytes], { type: (fmt == 'webp') ? 'image/webp' : ((fmt == 'png') ? 'image/png' : 'image/jpeg') })); } catch (ex) { url = null; }
             tile.onload = function () {
                 if (url) { URL.revokeObjectURL(url); }
-                if ((m.Canvas != null) && (m.KillDraw < r) && (m.State != 0)) { m.PendingOperations.push([r, 2, tile, X, Y]); } else { m.PendingOperations.push([r, 0]); }
+                if ((m.Canvas != null) && (m.KillDraw < r) && (m.State != 0)) { rmmScaleTile(m, X + tile.width, Y + tile.height); m.PendingOperations.push([r, 2, tile, X, Y]); } else { m.PendingOperations.push([r, 0]); }
                 while (m.DoPendingOperations()) { }
                 rmmOnPictureDrawn();
             };
@@ -3676,7 +3751,7 @@
                 if (url) { URL.revokeObjectURL(url); }
                 m.PendingOperations.push([r, 0]); // skip it, later tiles are still drawn
                 while (m.DoPendingOperations()) { }
-                if (fmt == 'webp') { rmmWebpBroken++; if (rmmWebpBroken == 3) { rmmApplyProfile('webp-error', true); } }
+                rmmBrokenTiles++; if ((rmmBrokenTiles % 3) == 0) { rmmApplyProfile('tile-error', true); } // ask for a whole new picture
             };
             if (url) { tile.src = url; return; }
             var strs = [], ptr = 0;
@@ -3769,7 +3844,11 @@
         //
 
         function rmmQuickKey(k) {
-            if (xxdialogMode || (desktop == null) || (desktop.State != 3) || (viewOnly == 1)) return;
+            if (xxdialogMode || (viewOnly == 1)) return;
+            rmmSpecialKey(String(k), function () { rmmQuickKeySend(k); }); // step 3: never lost on a path switch
+        }
+        function rmmQuickKeySend(k) {
+            if ((desktop == null) || (desktop.State != 3)) return;
             if ((k == 'esc') || (k == 'tab')) {
                 var kc = (k == 'esc') ? 27 : 9;
                 if (desktop.contype == 2) { var ks = (k == 'esc') ? 0xff1b : 0xff09; desktop.m.sendkey([[ks, 1], [ks, 0]]); }
@@ -3898,14 +3977,12 @@
 
         function rmmFillSettings() {
             if (Q('d7rmmMacKeys')) { Q('d7rmmMacKeys').checked = rmmMacKeysOn(); }
-            if (Q('d7rmmEncoding')) { Q('d7rmmEncoding').value = rmmPrefs.encoding; }
             QH('d7rmmInfo', EscapeHtml(rmmInfoText()));
             if (Q('d7rmmDirect')) { Q('d7rmmDirect').checked = (rmmPrefs.direct !== false); Q('d7rmmDirect').disabled = !rmmRtcAllowed; QH('d7rmmDirectInfo', EscapeHtml(rmmRtcInfoText())); }
         }
 
         function rmmReadSettings() {
             if (Q('d7rmmMacKeys') && (Q('d7rmmMacKeys').checked != rmmMacKeysOn())) { rmmReleaseModifiers(); rmmPrefs.macKeys = Q('d7rmmMacKeys').checked; }
-            if (Q('d7rmmEncoding')) { rmmPrefs.encoding = (Q('d7rmmEncoding').value == 'jpeg') ? 'jpeg' : 'auto'; }
             if (Q('d7rmmDirect') && rmmRtcAllowed) { rmmPrefs.direct = Q('d7rmmDirect').checked; if (!rmmPrefs.direct) { rmmRtcStop('turned-off'); } }
             rmmSavePrefs();
             rmmUpdateUi();
@@ -3940,12 +4017,13 @@
             rmm2OnDesktopDown();
             rmmUpdateNet();
             if (shareIsExpired()) { rmmShowReconnect('expired'); return; }
-            if (!rmmDesktopReconnectEnabled) { rmmShowReconnect('ended'); return; }
+            if (!rmmDesktopReconnectEnabled) { rmmSpecialPending = []; rmmShowReconnect('ended'); return; }
             // scheduleDesktopReconnect() shows "Ansluter igen…"
         }
 
         function rmmOnShareExpired() {
             rmmDesktopReconnectEnabled = false;
+            if (typeof rmmSpecialPending != 'undefined') { rmmSpecialPending = []; }
             if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
             if (desktop != null) { try { desktop.Stop(); } catch (ex) { } }
             rmmShowReconnect('expired');
@@ -4143,9 +4221,10 @@
         function rmmInfoText() {
             var s = rmmLastSent;
             if (s == null) return 'Ingen bild än.';
-            var fmt = (rmmAgentFormat == 'webp') ? 'WebP' : ((rmmAgentFormat == 'jpeg') ? 'JPEG' : ((s.type == 4) ? 'WebP' : 'JPEG'));
-            if ((s.type == 4) && (rmmAgentFormat == 'jpeg')) { fmt = 'JPEG (datorn skickar inte WebP)'; }
-            var x = fmt + ', kvalitet ' + s.q + ', högst ' + Math.round(1000 / s.fr) + ' bilder/s, skala ' + Math.round(s.scaling / 10.24) + ' %';
+            var fmt = (rmmAgentFormat == 'png') ? 'PNG' : ((rmmAgentFormat == 'webp') ? 'WebP' : 'JPEG'); // what the tiles really are
+            var x = fmt + ', kvalitet ' + s.q + ', högst ' + Math.round(1000 / s.fr) + ' bilder/s, skala ' + Math.round(rmmAgentScaling / 10.24) + ' %';
+            if (rmmPendingScaling != null) { x += ' (väntar på ' + Math.round(rmmPendingScaling / 10.24) + ' %)'; }
+            else if (Date.now() < rmmScale.ignoredUntil) { x += ' (datorn skalar inte, provar igen om en stund)'; }
             x += ', ' + Math.round(rmmNet.rateBytes / 1024) + ' kB/s';
             if (rmmPrefs.quality == 'auto') { x += ', Auto steg ' + (rmmAutoStep + 1) + ' av ' + RMM_LADDER.length; }
             x += ', ' + rmmPathText(true);
@@ -4226,7 +4305,7 @@
         var RMM_MODS = ['ctrl', 'alt', 'win'];
         var RMM_MOD_VK = { ctrl: [17, false], alt: [18, false], win: [91, true] };
         var RMM_IME_KEYS = { ArrowLeft: [37, true], ArrowUp: [38, true], ArrowRight: [39, true], ArrowDown: [40, true], Escape: [27, false], Tab: [9, false], Delete: [46, true], Home: [36, true], End: [35, true], PageUp: [33, true], PageDown: [34, true], Insert: [45, true] };
-        var RMM_RTC_REASONS = { 'timeout': 'inget svar', 'ice-failed': 'nätet släpper inte igenom', 'answer': 'fel svar', 'offer': 'kunde inte starta', 'create': 'webbläsaren kan inte', 'channel-closed': 'kanalen stängdes', 'ice-disconnected': 'nätet bytte', 'switch': 'bytet blev inte klart' };
+        var RMM_RTC_REASONS = { 'no-echo': 'ett tryck kom inte fram', 'timeout': 'inget svar', 'ice-failed': 'nätet släpper inte igenom', 'answer': 'fel svar', 'offer': 'kunde inte starta', 'create': 'webbläsaren kan inte', 'channel-closed': 'kanalen stängdes', 'ice-disconnected': 'nätet bytte', 'switch': 'bytet blev inte klart' };
 
         var rmmDev = { touch: false, mobile: false, phone: false, tablet: false, ios: false, cellular: false };
         var rmmView = { z: 1, tx: 0, ty: 0, cx: 0.5, cy: 0.5, fit: null, kbTop: null };
@@ -4248,7 +4327,7 @@
         var rmmRtcAllowed = ('{{{webrtc}}}' == '1'); // the server's settings.webRTC (needs the integrator patch to webserver.js)
         var rmmRtcConfig = null;
         (function () { var c = '{{{webrtcconfig}}}'; if (c == '') return; try { c = JSON.parse(decodeURIComponent(c)); if (c && (typeof c == 'object')) { rmmRtcConfig = c; } } catch (ex) { } })();
-        var rmmRtc = { d: null, pc: null, dc: null, state: 'off', reason: '', timer: null, discTimer: null, rtt: null, cand: null, statsAt: 0, coolUntil: 0, dcOpen: false, agentReady: false, switching: false };
+        var rmmRtc = { d: null, pc: null, dc: null, state: 'off', reason: '', timer: null, discTimer: null, rtt: null, cand: null, statsAt: 0, coolUntil: 0, dcOpen: false, agentReady: false, switching: false, queue: [], queueSpecial: [], echo: null };
         var rmmStats = { offers: 0, direct: 0, failed: 0, lost: 0, netChecks: 0 };
 
         function rmmMq(q) { try { return !!(window.matchMedia && window.matchMedia(q).matches); } catch (ex) { return false; } }
@@ -5004,6 +5083,7 @@
             if (rmmQuietTimer != null) return;
             rmmQuietTimer = setTimeout(function () {
                 rmmQuietTimer = null; rmmQuietUntil = 0;
+                updateDesktopButtons();
                 if ((desktop != null) && (desktop.State == 3) && !rmmStale) return; // back already
                 if (rmmStale) { Q('Desk').classList.add('rmm-stale'); }
                 rmmShowReconnect(((desktop != null) && (desktop.State == 3)) ? 'waiting' : 'retry', delay);
@@ -5025,6 +5105,22 @@
             d.attemptWebRTC = false; // agent-redir's own attempt stays off: it would end the session on any WebRTC error
             var orig = d.xxOnControlCommand;
             d.xxOnControlCommand = function (msg) { if (rmmRtcControl(d, msg)) return; return orig.call(d, msg); };
+            // Step 3: every input message goes through here, so nothing is sent where the agent is not reading.
+            var origSend = d.send;
+            d.rmmRawSend = function (x) { return origSend.call(d, x); };
+            d.send = function (x) { return rmmRtcSend(d, x); };
+            var origDisp = d.m.onDisplayinfo;
+            d.m.onDisplayinfo = function () { rmmEchoReply(d); if (origDisp) { return origDisp.apply(this, arguments); } };
+        }
+        // Between our webrtc1 and the agent's webrtc2 neither path takes input: keep it and send it on the
+        // direct path once the agent has confirmed. On the direct path, only a channel that is open is used;
+        // a closed one means the path broke: quiet switch to the relay (special keys are sent again there).
+        function rmmRtcSend(d, x) {
+            if (rmmRtc.d === d) {
+                if (rmmRtc.switching) { rmmRtc.queue.push(x); rmmSpecialNote(); return; }
+                if (d.webRtcActive && (!rmmRtc.dc || (rmmRtc.dc.readyState != 'open'))) { rmmSpecialNote(); rmmRtcLost('channel-closed'); return; }
+            }
+            return d.rmmRawSend(x);
         }
         function rmmRtcSet(state, reason) { rmmRtc.state = state; if (reason !== undefined) { rmmRtc.reason = reason; } rmmUpdateNet(); }
         function rmmRtcStart(d) {
@@ -5034,6 +5130,7 @@
             try { pc = new RTCPeerConnection(rmmRtcConfig || undefined); dc = pc.createDataChannel('DataChannel', {}); } catch (ex) { rmmRtcFail('create'); return; }
             rmmRtc.d = d; rmmRtc.pc = pc; rmmRtc.dc = dc;
             rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null; rmmRtc.cand = null;
+            rmmRtc.queue = []; rmmRtc.queueSpecial = []; rmmRtc.echo = null;
             d.webrtc = pc; // agent-redir's Stop() closes it too
             rmmStats.offers++;
             rmmRtcSet('trying', '');
@@ -5095,14 +5192,23 @@
             d.webSwitchOk = true;
             d.webRtcActive = true; // agent-redir's send() uses the data channel from now on
             rmmRtc.switching = false;
+            var q = rmmRtc.queue || [];
+            rmmRtc.queue = []; rmmRtc.queueSpecial = [];
+            for (var i = 0; i < q.length; i++) { rmmRtcSend(d, q[i]); } // what was pressed during the switch, in order
             rmmStats.direct++;
+            rmmStats.queuedAtSwitch = (rmmStats.queuedAtSwitch || 0) + q.length;
             rmmRtcSet('direct', '');
             rmmRtcStats();
+            rmmEchoProbe(d); // does this agent answer "which screens?" on the direct path? Then special keys can be confirmed.
         }
         function rmmRtcClose() {
             if (rmmRtc.timer) { clearTimeout(rmmRtc.timer); rmmRtc.timer = null; }
             if (rmmRtc.discTimer) { clearTimeout(rmmRtc.discTimer); rmmRtc.discTimer = null; }
             var d = rmmRtc.d, pc = rmmRtc.pc, dc = rmmRtc.dc;
+            // Special keys still waiting in the switch queue or for their confirmation are sent again on the next session.
+            if (rmmRtc.queueSpecial && rmmRtc.queueSpecial.length) { for (var qi = 0; qi < rmmRtc.queueSpecial.length; qi++) { rmmSpecialPend(rmmRtc.queueSpecial[qi]); } }
+            if (rmmEcho && (rmmEcho.d === d)) { clearTimeout(rmmEcho.timer); for (var ei = 0; ei < rmmEcho.keys.length; ei++) { rmmSpecialPend(rmmEcho.keys[ei]); } rmmEcho = null; }
+            rmmRtc.queue = []; rmmRtc.queueSpecial = []; rmmRtc.echo = null;
             rmmRtc.d = null; rmmRtc.pc = null; rmmRtc.dc = null; rmmRtc.dcOpen = false; rmmRtc.agentReady = false; rmmRtc.switching = false; rmmRtc.rtt = null;
             if (d) {
                 if (d.webrtc === pc) { d.webrtc = null; }
@@ -5199,6 +5305,7 @@
         }
         function rmm2OnDesktopUp() {
             rmmModsReset(); // a new session: nothing is held
+            if (rmmSpecialPending.length) { rmmSpecialWait = true; setTimeout(function () { if (rmmSpecialWait) { rmmSpecialWait = false; rmmSpecialFlush(); } }, 3000); }
             rmmRtcStart(desktop);
             rmmWakeLockOn();
             rmm2UpdateUi();
@@ -5215,6 +5322,83 @@
             rmmWakeLockOff();
             rmmMarkOff();
             rmmPointerPlace();
+        }
+
+        //
+        // Nordbase Remote step 3 (2026-11-15): special keys (Ctrl+Alt+Del, Win, Alt+Tab, Alt+F4, Esc, Tab) are
+        // never lost on a path switch.
+        //  - During the switch to the direct path they wait in the switch queue (rmmRtcSend) and go out in order.
+        //  - On the direct path they are followed by "which screens?" (KVM command 11). The agent reads its input
+        //    in order, so its answer proves the key reached the KVM. No answer within 2 s: the direct path is
+        //    taken as broken, the page switches quietly to the relay and sends the key once more there.
+        //    (If the agent does not answer command 11 at all, checked once per session, the key is just sent.)
+        //  - While the page switches quietly to the relay, a press is kept and sent when the session is back
+        //    (at most 10 s later; never after Avsluta or when the link has expired).
+        //
+
+        var RMM_ECHO_MS = 2000;
+        var rmmSpecialPending = [];   // [{ label, fn, at }]
+        var rmmSpecialNow = null;     // the special key being sent right now
+        var rmmSpecialWait = false;   // a new session: send waiting keys once its first screen size has arrived
+        var rmmEcho = null;           // { d, keys: [...], timer }
+
+        function rmmSpecialKey(label, fn) {
+            var key = { label: label, fn: fn, at: Date.now() };
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) {
+                if ((desktop != null) && (desktop.State == 3)) { fn(); return; } // Intel AMT: as before
+                if (rmmQuietNow() || (rmmQuietTimer != null) || rmmSpecialWait) { rmmSpecialPend(key); }
+                return;
+            }
+            rmmStats.specialSent = (rmmStats.specialSent || 0) + 1;
+            rmmSpecialNow = key;
+            try { fn(); } finally { rmmSpecialNow = null; }
+            if (rmmRtc.d !== desktop) return;
+            if (rmmRtc.switching) return;                                       // queued; noted in rmmRtc.queueSpecial
+            if ((rmmRtc.state == 'direct') && (rmmRtc.echo === true)) { rmmEchoAdd(desktop, key); }
+        }
+        // Called by rmmRtcSend when a special key's bytes are queued or the path broke under them.
+        function rmmSpecialNote() {
+            if (!rmmSpecialNow) return;
+            if (rmmRtc.queueSpecial.indexOf(rmmSpecialNow) < 0) { rmmRtc.queueSpecial.push(rmmSpecialNow); }
+            if (!rmmRtc.switching) { rmmSpecialPend(rmmSpecialNow); }       // the channel was closed: send it on the next session
+        }
+        function rmmSpecialPend(key) { if (rmmSpecialPending.indexOf(key) < 0) { rmmSpecialPending.push(key); rmmStats.specialKept = (rmmStats.specialKept || 0) + 1; } }
+        function rmmSpecialSessionReady() {
+            if (!rmmSpecialWait) return;
+            rmmSpecialWait = false;
+            setTimeout(rmmSpecialFlush, 250); // the agent's KVM is running once it has sent its screen size
+        }
+        function rmmSpecialFlush() {
+            var now = Date.now(), list = rmmSpecialPending;
+            rmmSpecialPending = [];
+            if ((desktop == null) || (desktop.State != 3) || !rmmDesktopReconnectEnabled || shareIsExpired()) return;
+            for (var i = 0; i < list.length; i++) {
+                if ((now - list[i].at) > 10000) continue; // too old: a late Ctrl+Alt+Del would surprise
+                rmmStats.specialResent = (rmmStats.specialResent || 0) + 1;
+                rmmSpecialKey(list[i].label, list[i].fn);
+            }
+        }
+        function rmmEchoProbe(d) {
+            rmmRtc.echo = null;
+            var t = setTimeout(function () { if ((rmmRtc.d === d) && (rmmRtc.echo === null)) { rmmRtc.echo = false; } }, 3000);
+            rmmRtc.echoProbe = { d: d, timer: t };
+            try { d.m.GetDisplayNumbers(); } catch (ex) { }
+        }
+        function rmmEchoAdd(d, key) {
+            if (!rmmEcho || (rmmEcho.d !== d)) { rmmEcho = { d: d, keys: [], timer: null }; }
+            rmmEcho.keys.push(key);
+            if (rmmEcho.timer) { clearTimeout(rmmEcho.timer); }
+            rmmEcho.timer = setTimeout(function () {
+                if (!rmmEcho || (rmmEcho.d !== d)) return;
+                rmmStats.echoMissed = (rmmStats.echoMissed || 0) + 1;
+                if ((rmmRtc.d === d) && (rmmRtc.state == 'direct')) { rmmRtcLost('no-echo'); } // keys move to rmmSpecialPending in rmmRtcClose
+                else { for (var i = 0; i < rmmEcho.keys.length; i++) { rmmSpecialPend(rmmEcho.keys[i]); } rmmEcho = null; }
+            }, RMM_ECHO_MS);
+            try { d.m.GetDisplayNumbers(); } catch (ex) { }
+        }
+        function rmmEchoReply(d) {
+            if (rmmRtc.echoProbe && (rmmRtc.echoProbe.d === d) && (rmmRtc.d === d)) { clearTimeout(rmmRtc.echoProbe.timer); rmmRtc.echoProbe = null; rmmRtc.echo = true; }
+            if (rmmEcho && (rmmEcho.d === d)) { clearTimeout(rmmEcho.timer); rmmStats.echoOk = (rmmStats.echoOk || 0) + rmmEcho.keys.length; rmmEcho = null; }
         }
 
         start();

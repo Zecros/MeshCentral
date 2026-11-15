@@ -21,7 +21,15 @@ function u16(v) { return [(v >> 8) & 0xff, v & 0xff]; }
 export class FakeAgent {
     constructor() {
         this.encoder = null; // async (spec) => [{x, y, b64}]
-        this.cfg = { latency: 0, jitter: 0, bw: 0, refuse: false, nowebp: false, heavy: false, corruptWebp: 0, displays: [1, 2, 65535], rtc: 'off' };
+        this.cfg = { latency: 0, jitter: 0, bw: 0, refuse: false, heavy: false, corrupt: 0, displays: [1, 2, 65535], rtc: 'off',
+            // Step 3: what the real Windows agent showed on staging, and more.
+            dupConnect: false,   // the screen size is sent twice at the start (the second, old one, arrives while the page's request waits)
+            lateOldSize: '',     // on a scaling change: 'before' = old size again first, 'after' = a late copy of the old size after the new one, 'both'
+            noscale: false,      // the agent ignores scaling requests
+            silentScale: false,  // the agent scales but never sends the new size
+            ctrlDelay: 0,        // ms before the agent answers webrtc0/webrtc1 (a wider path-switch window)
+            revertAfter: 0 };    // ms after the first scaling change the agent goes back to 100 % by itself (a desktop switch)
+        this.cadTotal = 0;       // never reset: every Ctrl+Alt+Del that reached the "KVM"
         this.peer = null;        // step 2: { answer(sdp, mode) -> Promise<sdp>, send(buf), close() } in a second Chrome tab
         this.rtcSession = null;
         this.display = 1;
@@ -31,7 +39,7 @@ export class FakeAgent {
 
     reset() {
         this.log = { connects: [], refused: [], compression: [], keys: [], setDisplay: [], ctrl: [], sharecontrol: [], sharecontrolConnects: 0, tilesSent: 0, bytesSent: 0, mouse: 0,
-            input: [], rtc: { offers: 0, answers: 0, opened: 0, switched: 0, peerClosed: 0, kvmBytesRtc: 0, kvmBytesWs: 0, inputRtc: 0, wsInputAfterSwitch: 0 } };
+            input: [], rtc: { offers: 0, answers: 0, opened: 0, switched: 0, peerClosed: 0, kvmBytesRtc: 0, kvmBytesWs: 0, inputRtc: 0, wsInputAfterSwitch: 0, rtcInputBeforeSwitch: 0 } };
     }
 
     clearKeys() { this.log.keys = []; }
@@ -129,7 +137,11 @@ class Session {
     backlogMs() { return Math.max(0, this.queueEnd - Date.now()); }
 
     onText(text) {
-        if (text === '2') { this.started = true; this.sendScreen(); this.sendDisplays(); this.fullFrame(); this.restartAnim(); return; }
+        if (text === '2') {
+            this.started = true; this.sendScreen(); this.sendDisplays(); this.fullFrame(); this.restartAnim();
+            if (this.agent.cfg.dupConnect) { const first = this.size(); const t = setTimeout(() => { this.timers.delete(t); this.sendSize(first); }, 60); this.timers.add(t); }
+            return;
+        }
         let msg = null;
         try { msg = JSON.parse(text); } catch (ex) { return; }
         this.agent.log.ctrl.push(msg);
@@ -149,13 +161,15 @@ class Session {
             return;
         }
         if (!msg || (String(msg.ctrlChannel) !== '102938')) return;
-        if (msg.type === 'webrtc0') { this.enqueue('{"ctrlChannel":"102938","type":"webrtc1"}'); this.kvmPaused = true; }      // KVM unpiped from the relay, end-of-data marker
-        else if (msg.type === 'webrtc1') { this.inputOnRtc = true; this.enqueue('{"ctrlChannel":"102938","type":"webrtc2"}'); } // input now read from WebRTC
+        const later = (fn) => { const d = this.agent.cfg.ctrlDelay; if (!d) { fn(); return; } const t = setTimeout(() => { this.timers.delete(t); if (this.ws.open) fn(); }, d); this.timers.add(t); };
+        if (msg.type === 'webrtc0') { this.kvmPaused = true; later(() => this.enqueue('{"ctrlChannel":"102938","type":"webrtc1"}')); }      // KVM unpiped from the relay, end-of-data marker
+        else if (msg.type === 'webrtc1') { this.inputOnRtc = true; later(() => this.enqueue('{"ctrlChannel":"102938","type":"webrtc2"}')); } // input now read from WebRTC (relay input is dropped from here on)
         else if (msg.type === 'webrtc2') { this.kvmOnRtc = true; this.kvmPaused = false; rtc.switched++; }                      // KVM piped to WebRTC
     }
 
     onBinary(buf, path = 'ws') {
         if ((path === 'ws') && this.inputOnRtc) { this.agent.log.rtc.wsInputAfterSwitch++; return; } // the agent reads input from WebRTC only now
+        if ((path === 'rtc') && !this.inputOnRtc) { this.agent.log.rtc.rtcInputBeforeSwitch++; return; } // before webrtc1 the agent ignores binary data on WebRTC
         if (path === 'rtc') this.agent.log.rtc.inputRtc++;
         let off = 0;
         while (off + 4 <= buf.length) {
@@ -171,7 +185,7 @@ class Session {
         switch (cmd) {
             case 1: log.keys.push({ t: 'key', flag: b[4], kc: b[5], path }); log.input.push({ t: 'key', flag: b[4], kc: b[5], path }); break;
             case 85: log.keys.push({ t: 'uni', flag: b[4], ch: String.fromCharCode(b.readUInt16BE(5)), path }); log.input.push({ t: 'uni', flag: b[4], ch: String.fromCharCode(b.readUInt16BE(5)), path }); break;
-            case 10: log.keys.push({ t: 'cad', path }); log.input.push({ t: 'cad', path }); break;
+            case 10: this.agent.cadTotal++; log.keys.push({ t: 'cad', path }); log.input.push({ t: 'cad', path }); break;
             case 2: {
                 log.mouse++;
                 const x = b.readUInt16BE(6), y = b.readUInt16BE(8);
@@ -182,10 +196,23 @@ class Session {
             case 5: {
                 const type = b[4], q = b[5], scaling = b.readUInt16BE(6), fr = b.readUInt16BE(8);
                 log.compression.push({ at: Date.now(), type, q, scaling, fr });
-                const scaleChanged = (scaling !== this.scaling), picChanged = (type !== this.type) || (q !== this.q);
-                this.type = type; this.q = q; this.scaling = scaling; this.fr = fr;
+                const cfg = this.agent.cfg, old = this.size();
+                const want = cfg.noscale ? this.scaling : scaling;
+                const scaleChanged = (want !== this.scaling), picChanged = (type !== this.type) || (q !== this.q);
+                this.type = type; this.q = q; this.scaling = want; this.fr = fr;
                 if (!this.started) break;
-                if (scaleChanged) { this.sendScreen(); this.fullFrame(); }
+                if (scaleChanged) {
+                    const late = cfg.lateOldSize;
+                    if ((late === 'before') || (late === 'both')) this.sendSize(old);
+                    if (!cfg.silentScale) this.sendScreen();
+                    if ((late === 'after') || (late === 'both')) { const t = setTimeout(() => { this.timers.delete(t); this.sendSize(old); }, 150); this.timers.add(t); }
+                    this.fullFrame();
+                    if (cfg.revertAfter && (want !== 1024) && !this.reverted) {
+                        this.reverted = true;
+                        const t = setTimeout(() => { this.timers.delete(t); this.scaling = 1024; this.sendScreen(); this.fullFrame(); }, cfg.revertAfter);
+                        this.timers.add(t);
+                    }
+                }
                 else if (picChanged) { this.fullFrame(); }
                 this.restartAnim();
                 break;
@@ -202,7 +229,8 @@ class Session {
         }
     }
 
-    sendScreen() { const s = this.size(); this.enqueue(Buffer.from([0, 7, 0, 8, ...u16(s.w), ...u16(s.h)])); }
+    sendScreen() { this.sendSize(this.size()); }
+    sendSize(s) { this.agent.log.sizes = this.agent.log.sizes || []; this.agent.log.sizes.push(s.w + 'x' + s.h); this.enqueue(Buffer.from([0, 7, 0, 8, ...u16(s.w), ...u16(s.h)])); }
 
     sendDisplays() {
         const list = this.agent.cfg.displays;
@@ -222,7 +250,7 @@ class Session {
         this.agent.log.tilesSent++;
     }
 
-    imageType() { return ((this.type === 4) && !this.agent.cfg.nowebp) ? 'image/webp' : 'image/jpeg'; }
+    imageType() { return (this.type === 4) ? 'image/webp' : 'image/jpeg'; } // the page asks for JPEG (type 1) since step 3
 
     async encode(mode) {
         if (!this.agent.encoder) return [];
@@ -231,8 +259,10 @@ class Session {
     }
 
     async fullFrame() {
+        const sc = this.scaling, disp = this.agent.display;
         const tiles = await this.encode('full');
         if (!this.ws.open) return;
+        if ((sc !== this.scaling) || (disp !== this.agent.display)) return; // a real agent never sends a picture of the old size after the new size
         for (const t of tiles) this.sendTile(t.x, t.y, Buffer.from(t.b64, 'base64'));
     }
 
@@ -248,13 +278,14 @@ class Session {
         try {
             this.frame++;
             const cfg = this.agent.cfg;
-            if ((cfg.corruptWebp > 0) && (this.imageType() === 'image/webp')) {
-                cfg.corruptWebp--;
-                const junk = Buffer.alloc(200, 0x5a); junk.write('RIFF', 0); junk.writeUInt32LE(192, 4); junk.write('WEBPVP8 ', 8);
+            if (cfg.corrupt > 0) { // a tile that cannot be decoded (step 3: JPEG header, garbage after it)
+                cfg.corrupt--;
+                const junk = Buffer.alloc(200, 0x5a); junk[0] = 0xFF; junk[1] = 0xD8; junk[2] = 0xFF; junk[3] = 0xE0;
                 this.sendTile(0, 0, junk);
             } else {
+                const sc = this.scaling, disp = this.agent.display;
                 const tiles = await this.encode('anim');
-                for (const t of tiles) this.sendTile(t.x, t.y, Buffer.from(t.b64, 'base64'));
+                if ((sc === this.scaling) && (disp === this.agent.display)) { for (const t of tiles) this.sendTile(t.x, t.y, Buffer.from(t.b64, 'base64')); }
             }
         } finally { this.encoding = false; }
     }
@@ -275,7 +306,7 @@ export function startHarnessServer({ port = 0, pageValues = () => ({}) } = {}) {
             const v = Object.assign({
                 randomlength: '', serverDnsName: '127.0.0.1', serverPublicPort: addr.port, domain: '', domainurl: '/', authCookie: 'harness-cookie',
                 viewOnly: 0, nodeName: encodeURIComponent('TEST-PC (Prov AB)'), remotePlatform: 'windows', expire: Date.now() + 30 * 60000,
-                features: 7, features2: 0, features3: 0, min: '',
+                features: 7, features2: 1, features3: 0, // features2 1 = allowHighQualityDesktop, as on staging min: '',
                 customCSSTags: '<link keeplink=1 type="text/css" href="styles/custom.css" media="screen" rel="stylesheet" title="CSS" />',
                 customJSTags: '<script keeplink=1 type="text/javascript" src="scripts/custom.js"></script>'
             }, pageValues(url));
