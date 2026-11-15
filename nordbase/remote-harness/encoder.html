@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="sv">
+<head><meta charset="utf-8"><title>Harness encoder</title></head>
+<body>
+<canvas id="scene"></canvas>
+<canvas id="tile"></canvas>
+<script>
+// Draws a synthetic "Windows desktop" and encodes tiles of it as JPEG or WebP for the fake agent.
+// Display 1 = 3840x2160 (4K), display 2 = 1920x1080, 65535 = both side by side.
+var DISPLAYS = { 1: { w: 3840, h: 2160, hue: 212 }, 2: { w: 1920, h: 1080, hue: 158 } };
+var baseCache = {};
+
+function nativeSize(display) {
+    if (display == 65535) return { w: DISPLAYS[1].w + DISPLAYS[2].w, h: Math.max(DISPLAYS[1].h, DISPLAYS[2].h) };
+    return { w: DISPLAYS[display].w, h: DISPLAYS[display].h };
+}
+
+function drawOne(ctx, d, ox, label) {
+    var w = d.w, h = d.h, s = w / 1920;
+    var g = ctx.createLinearGradient(ox, 0, ox + w, h);
+    g.addColorStop(0, 'hsl(' + d.hue + ',55%,32%)'); g.addColorStop(1, 'hsl(' + (d.hue + 40) + ',45%,18%)');
+    ctx.fillStyle = g; ctx.fillRect(ox, 0, w, h);
+    // icons
+    for (var i = 0; i < 5; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(ox + 30 * s, (40 + i * 110) * s, 56 * s, 56 * s);
+        ctx.fillStyle = '#fff'; ctx.font = (14 * s) + 'px Arial'; ctx.fillText(['Papperskorg', 'Dokument', 'Kalkyl.xlsx', 'Nordbase', 'Skrivare'][i], ox + 22 * s, (118 + i * 110) * s);
+    }
+    // window with text
+    var wx = ox + 260 * s, wy = 120 * s, ww = 1100 * s, wh = 640 * s;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(wx + 8 * s, wy + 10 * s, ww, wh);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(wx, wy, ww, wh);
+    ctx.fillStyle = '#f0f2f5'; ctx.fillRect(wx, wy, ww, 40 * s);
+    ctx.fillStyle = '#222'; ctx.font = 'bold ' + (16 * s) + 'px Arial'; ctx.fillText(label + ' - Anteckningar', wx + 16 * s, wy + 26 * s);
+    ctx.font = (18 * s) + 'px Consolas, Menlo, monospace';
+    var lines = ['Hej! Det här är en testbild för Nordbase Remote.', 'Svenska tecken: å ä ö Å Ä Ö', 'AltGr-tecken: @ £ $ € { [ ] } \\ | ~', 'Skarp text ska gå att läsa i Anpassa-läget.', 'Tunn linje:'];
+    for (var j = 0; j < lines.length; j++) { ctx.fillText(lines[j], wx + 24 * s, wy + (90 + j * 34) * s); }
+    for (var k = 0; k < 40; k++) { ctx.fillStyle = (k % 2) ? '#000' : '#fff'; ctx.fillRect(wx + (24 + k * 6) * s, wy + 270 * s, 3 * s, 20 * s); }
+    // taskbar
+    ctx.fillStyle = 'rgba(20,22,26,0.94)'; ctx.fillRect(ox, h - 48 * s, w, 48 * s);
+    ctx.fillStyle = '#4aa3ff'; ctx.fillRect(ox + 12 * s, h - 38 * s, 28 * s, 28 * s);
+}
+
+function getBase(display, w, h) {
+    var key = display + 'x' + w + 'x' + h;
+    if (baseCache[key]) return baseCache[key];
+    var n = nativeSize(display), c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var ctx = c.getContext('2d');
+    ctx.setTransform(w / n.w, 0, 0, h / n.h, 0, 0);
+    if (display == 65535) { drawOne(ctx, DISPLAYS[1], 0, 'Skärm 1'); drawOne(ctx, DISPLAYS[2], DISPLAYS[1].w, 'Skärm 2'); }
+    else { drawOne(ctx, DISPLAYS[display], 0, 'Skärm ' + display); }
+    baseCache[key] = c;
+    return c;
+}
+
+// Animated parts in native coordinates of display 1 (or the display itself).
+function animRegions(display) {
+    var n = nativeSize(display), s = (display == 2) ? 0.5 : 1;
+    return {
+        clock: [n.w - 300 * s, n.h - 92 * s, 280 * s, 84 * s],
+        video: [1400 * s, 900 * s, 1600 * s, 900 * s]
+    };
+}
+
+function drawAnim(ctx, display, frame, heavy) {
+    var r = animRegions(display);
+    var c = r.clock;
+    ctx.fillStyle = '#14161a'; ctx.fillRect(c[0], c[1], c[2], c[3]);
+    ctx.fillStyle = '#fff'; ctx.font = (c[3] * 0.45) + 'px Arial'; ctx.fillText('Bild ' + frame, c[0] + c[2] * 0.08, c[1] + c[3] * 0.62);
+    if (heavy) {
+        var v = r.video, cols = 32, rows = 18, cw = v[2] / cols, rh = v[3] / rows, seed = frame * 7919;
+        for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            ctx.fillStyle = 'hsl(' + (seed % 360) + ',70%,' + (30 + (seed % 40)) + '%)';
+            ctx.fillRect(v[0] + x * cw, v[1] + y * rh, cw + 1, rh + 1);
+        }
+    }
+}
+
+function toScaled(rect, display, w, h) {
+    var n = nativeSize(display), sx = w / n.w, sy = h / n.h;
+    var x = Math.max(0, Math.floor(rect[0] * sx)), y = Math.max(0, Math.floor(rect[1] * sy));
+    return [x, y, Math.min(w - x, Math.ceil(rect[2] * sx)), Math.min(h - y, Math.ceil(rect[3] * sy))];
+}
+
+// spec: { display, w, h, frame, heavy, type: 'image/jpeg'|'image/webp', q, mode: 'full'|'anim' }
+window.encodeTiles = function (spec) {
+    var n = nativeSize(spec.display), scene = document.getElementById('scene'), tile = document.getElementById('tile');
+    if (scene.width != spec.w || scene.height != spec.h) { scene.width = spec.w; scene.height = spec.h; }
+    var ctx = scene.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(getBase(spec.display, spec.w, spec.h), 0, 0);
+    ctx.setTransform(spec.w / n.w, 0, 0, spec.h / n.h, 0, 0);
+    drawAnim(ctx, spec.display, spec.frame, spec.heavy);
+    var rects = [];
+    if (spec.mode == 'full') {
+        for (var y = 0; y < spec.h; y += 256) for (var x = 0; x < spec.w; x += 512) rects.push([x, y, Math.min(512, spec.w - x), Math.min(256, spec.h - y)]);
+    } else {
+        var r = animRegions(spec.display);
+        rects.push(toScaled(r.clock, spec.display, spec.w, spec.h));
+        if (spec.heavy) rects.push(toScaled(r.video, spec.display, spec.w, spec.h));
+    }
+    var out = [], tctx = tile.getContext('2d');
+    for (var i = 0; i < rects.length; i++) {
+        var q = rects[i];
+        if (q[2] <= 0 || q[3] <= 0) continue;
+        tile.width = q[2]; tile.height = q[3];
+        tctx.drawImage(scene, q[0], q[1], q[2], q[3], 0, 0, q[2], q[3]);
+        var url = tile.toDataURL(spec.type, spec.q / 100);
+        out.push({ x: q[0], y: q[1], b64: url.substring(url.indexOf(',') + 1) });
+    }
+    return out;
+};
+window.encoderReady = true;
+</script>
+</body>
+</html>

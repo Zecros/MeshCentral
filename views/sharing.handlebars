@@ -131,7 +131,9 @@
         body.rmm-remote #connectbutton2span,
         body.rmm-remote #p13Connect,
         body.rmm-remote .deskareaicon,
-        body.rmm-remote #DeskType,
+        body.rmm-remote #idx_deskFullBtn2,
+        body.rmm-remote #DeskLatency,
+        body.rmm-remote #termdisplays,
         body.rmm-remote #DeskWD,
         body.rmm-remote #deskkeys,
         body.rmm-remote #DeskSaveImageButton {
@@ -216,7 +218,6 @@
             text-overflow: ellipsis;
         }
         body.rmm-remote #p11power,
-        body.rmm-remote #DeskLatency,
         body.rmm-remote #DeskTimer {
             display: inline-flex !important;
             align-items: center;
@@ -380,17 +381,225 @@
             color: #071008 !important;
             font-weight: 750;
         }
+
+        /* Nordbase Remote step 1 (2026-11-15): larger touch-friendly controls, quality, screens,
+           quick keys, connection indicator and the reconnect overlay. */
+        body.rmm-remote #deskarea1,
+        body.rmm-remote #deskarea4 {
+            height: 52px !important;
+            min-height: 52px !important;
+            line-height: normal !important;
+            gap: 8px;
+        }
+        body.rmm-remote #deskarea1 > div,
+        body.rmm-remote #deskarea4 > div {
+            flex: 0 0 auto;
+        }
+        body.rmm-remote #deskstatus,
+        body.rmm-remote #p11power { white-space: nowrap; }
+        body.rmm-remote #rmmRemoteBadge span { max-width: 18vw !important; }
+        body.rmm-remote .rmm-icon { width: 44px; padding: 0 !important; }
+        body.rmm-remote #deskarea3x {
+            position: relative;
+            height: calc(100vh - 104px) !important;
+            max-height: calc(100vh - 104px) !important;
+        }
+        body.rmm-remote #DeskParent {
+            height: 100%;
+            text-align: center;
+        }
+        body.rmm-remote .rmm-btn,
+        body.rmm-remote #DeskType,
+        body.rmm-remote #DeskClip,
+        body.rmm-remote #deskActionsSettings,
+        body.rmm-remote #disconnectbutton1 {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 40px !important;
+            min-height: 40px !important;
+            min-width: 44px;
+            padding: 0 10px !important;
+            border: 1px solid var(--nordbase-line) !important;
+            border-radius: 8px !important;
+            background: rgba(246, 244, 238, 0.08) !important;
+            color: var(--nordbase-text) !important;
+            font: inherit;
+            font-size: 14px !important;
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+            flex: 0 0 auto;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        body.rmm-remote .rmm-btn:hover { background: rgba(246, 244, 238, 0.14) !important; }
+        body.rmm-remote .rmm-btn:active { transform: translateY(1px); }
+        body.rmm-remote .rmm-btn:disabled,
+        body.rmm-remote #DeskType:disabled,
+        body.rmm-remote #DeskClip:disabled { opacity: .45; cursor: default; }
+        body.rmm-remote #disconnectbutton1 {
+            border-color: rgba(255, 107, 107, 0.36) !important;
+            background: rgba(255, 107, 107, 0.14) !important;
+            color: #ffdede !important;
+        }
+        body.rmm-remote .rmm-seg {
+            display: inline-flex;
+            flex: 0 0 auto;
+            padding: 3px;
+            gap: 2px;
+            border: 1px solid var(--nordbase-line);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+        body.rmm-remote .rmm-seg .rmm-btn {
+            height: 34px !important;
+            min-height: 34px !important;
+            border-color: transparent !important;
+            background: transparent !important;
+            color: var(--nordbase-muted) !important;
+        }
+        body.rmm-remote .rmm-seg .rmm-btn[aria-pressed="true"] {
+            background: var(--nordbase-text) !important;
+            color: #080a08 !important;
+        }
+        body.rmm-remote .rmm-toggle[aria-pressed="true"] {
+            border-color: rgba(159, 240, 189, 0.45) !important;
+            background: rgba(159, 240, 189, 0.14) !important;
+            color: var(--nordbase-accent) !important;
+        }
+        body.rmm-remote .rmm-net {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid var(--nordbase-line);
+            background: rgba(246, 244, 238, 0.06);
+            color: var(--nordbase-text);
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+        body.rmm-remote .rmm-net i {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #8b8f88;
+        }
+        body.rmm-remote .rmm-net small { color: var(--nordbase-muted); font-size: 12px; font-weight: 500; }
+        body.rmm-remote .rmm-net.rmm-net-good i { background: #5fd68a; }
+        body.rmm-remote .rmm-net.rmm-net-shaky i { background: #f2c94c; }
+        body.rmm-remote .rmm-net.rmm-net-bad i { background: #ff6b6b; }
+        body.rmm-remote #deskarea4 > .rmm-keys {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        body.rmm-remote .rmm-keys::-webkit-scrollbar { display: none; }
+        body.rmm-remote .rmm-sep {
+            width: 1px;
+            height: 24px;
+            background: var(--nordbase-line);
+            flex: 0 0 auto;
+        }
+        body.rmm-remote #deskarea4 .toright2 { flex: 0 0 auto; }
+        body.rmm-remote #DeskControlSpan { height: 40px; min-height: 40px !important; font-size: 14px !important; white-space: nowrap; }
+        body.rmm-remote #rmmReconnect {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(5, 6, 5, 0.45);
+            pointer-events: none;
+        }
+        body.rmm-remote #rmmReconnect.rmm-show { display: flex; }
+        body.rmm-remote #rmmReconnect > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            max-width: calc(100% - 32px);
+            padding: 20px 28px;
+            border: 1px solid var(--nordbase-line);
+            border-radius: 12px;
+            background: rgba(16, 18, 15, 0.94);
+            color: var(--nordbase-text);
+            text-align: center;
+            pointer-events: auto;
+        }
+        body.rmm-remote #rmmReconnectTitle { font-size: 18px; font-weight: 700; }
+        body.rmm-remote #rmmReconnectText { font-size: 14px; color: var(--nordbase-muted); }
+        body.rmm-remote #rmmReconnect .rmm-spin {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            border: 3px solid rgba(246, 244, 238, 0.18);
+            border-top-color: var(--nordbase-accent);
+            animation: rmmspin 0.9s linear infinite;
+        }
+        body.rmm-remote #rmmReconnect.rmm-ended .rmm-spin { display: none; }
+        body.rmm-remote #rmmReconnect #rmmReconnectButton { display: none; margin-top: 4px; }
+        body.rmm-remote #rmmReconnect.rmm-can-retry #rmmReconnectButton { display: inline-flex; }
+        body.rmm-remote #Desk.rmm-stale { filter: grayscale(0.85) brightness(0.6); }
+        @keyframes rmmspin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { body.rmm-remote #rmmReconnect .rmm-spin { animation: none; } }
+        body.rmm-remote #dialog7 .rmm-hide { display: none !important; }
+        body.rmm-remote #d2typeText,
+        body.rmm-remote #d2clipText {
+            box-sizing: border-box;
+            font-size: 15px !important;
+            line-height: 1.4 !important;
+            padding: 10px !important;
+        }
+        /* Narrow windows: hide less important parts, let rows scroll instead of the page. */
+        @media (max-width: 1500px) {
+            body.rmm-remote #DeskTimer { display: none !important; }
+        }
+        @media (max-width: 1400px) {
+            body.rmm-remote #p11power { display: none !important; }
+        }
+        @media (max-width: 900px) {
+            /* Until the mobile view (step 2): both bars scroll sideways, the page itself never does. */
+            body.rmm-remote #rmmRemoteBadge span,
+            body.rmm-remote #deskmetadata { display: none !important; }
+            body.rmm-remote #deskarea1,
+            body.rmm-remote #deskarea4 { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; justify-content: flex-start !important; }
+            body.rmm-remote #deskarea1::-webkit-scrollbar,
+            body.rmm-remote #deskarea4::-webkit-scrollbar { display: none; }
+            body.rmm-remote #deskarea1 .toright2,
+            body.rmm-remote #deskarea4 .toright2 { margin-left: 0 !important; }
+            body.rmm-remote #deskarea4 > .rmm-keys { flex: 0 0 auto; overflow: visible; }
+            body.rmm-remote .rmm-net small { display: none; }
+        }
+        @media (max-width: 600px) {
+            body.rmm-remote #deskarea1, body.rmm-remote #deskarea4 { padding: 0 8px !important; }
+            body.rmm-remote #rmmRemoteBadge { font-size: 0 !important; gap: 0 !important; }
+            body.rmm-remote #rmmRemoteBadge::before { font-size: 13px; }
+            body.rmm-remote #deskstatus { display: none !important; }
+            body.rmm-remote #deskActionsSettings { display: none !important; }
+            body.rmm-remote #DeskTimer { display: none !important; }
+        }
     </style>
 </head>
 <body class="rmm-remote" style="overflow:hidden;background-color:black">
     <div id=LeftSideToolBar style="display:none;position:absolute;left:0;bottom:0;width:52px;top:0;background:#113962;background:linear-gradient(to bottom, #104893 0%,#113962 100%);color:white;border-right: 5px solid #BBB;">
-        <div id=LeftMenuDesktop class="slbbutton slbbuttonsel2" title="Desktop" onclick=go(11)>
+        <div id=LeftMenuDesktop class="slbbutton slbbuttonsel2" title="Skrivbord" onclick=go(11)>
             <div class="slb1" style="position:absolute;top:6px;left:6px"></div>
         </div>
         <div id=LeftMenuTerminal class="slbbutton" title="Terminal" onclick=go(12)>
             <div class="slb2" style="position:absolute;top:6px;left:6px"></div>
         </div>
-        <div id=LeftMenuFiles class="slbbutton" title="Files" onclick=go(13)>
+        <div id=LeftMenuFiles class="slbbutton" title="Filer" onclick=go(13)>
             <div class="slb3" style="position:absolute;top:6px;left:6px"></div>
         </div>
     </div>
@@ -398,22 +607,32 @@
         <div id=deskarea0>
             <div id=deskarea1 class="areaHead" style="line-height:24px">
                 <div class="toright2">
-                    <span id="p11power"></span>&nbsp;
+                    <div id="rmmNet" class="rmm-net" title="Anslutningen: mätt fördröjning och hur bilderna kommer fram"><i></i><span id="rmmNetText">Ingen kontakt</span><small id="rmmNetMs"></small></div>
+                    <div id="rmmQuality" class="rmm-seg" role="group" aria-label="Bild">
+                        <button type="button" class="rmm-btn" data-q="auto" aria-pressed="true" onclick="rmmSetQuality('auto')" title="Anpassar bilden efter nätet">Auto</button>
+                        <button type="button" class="rmm-btn" data-q="sharp" aria-pressed="false" onclick="rmmSetQuality('sharp')" title="Skarp text, mer data">Skarp</button>
+                        <button type="button" class="rmm-btn" data-q="fast" aria-pressed="false" onclick="rmmSetQuality('fast')" title="Mindre data, snabbare på dåligt nät">Snabb</button>
+                    </div>
+                    <div id="rmmFit" class="rmm-seg" role="group" aria-label="Storlek">
+                        <button type="button" class="rmm-btn" data-fit="1" aria-pressed="true" onclick="rmmSetFit(true)" title="Hela skärmen syns i fönstret">Anpassa</button>
+                        <button type="button" class="rmm-btn" data-fit="0" aria-pressed="false" onclick="rmmSetFit(false)" title="En pixel på datorn blir en pixel här, du rullar för att se resten">100 %</button>
+                    </div>
+                    <button type="button" id="rmmFullButton" class="rmm-btn rmm-icon" onclick="rmmToggleFullscreen()" title="Helskärm" aria-label="Helskärm"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 6V2h4M12 2h4v4M16 12v4h-4M6 16H2v-4"/></svg></button>
                     <div class='deskareaicon' title="Toggle View Mode" onclick="toggleAspectRatio(1)">&#8690;</div>
                     <div class='deskareaicon' title="Rotate Left" onclick="drotate(-1)">&olarr;</div>
                     <div class='deskareaicon' title="Rotate Right" onclick="drotate(1)">&orarr;</div>
-                    <input id="deskActionsSettings" type="button" value="Remote settings" title="Remote desktop settings" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()" class="mR" />
+                    <input id="deskActionsSettings" type="button" value="Inställningar" title="Inställningar för fjärrstyrningen" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()" class="mR" />
                     <div id="desktopCustomUiButtons" style="float:left"></div>
-                    <div id="deskRecordIcon" class='deskareaicon' title="Server is recording this session" style="display:none;background-color:red;width:12px;height:12px;border-radius:6px;margin-top:5px"></div>
+                    <div id="deskRecordIcon" class='deskareaicon' title="Servern spelar in sessionen" style="display:none;background-color:red;width:12px;height:12px;border-radius:6px;margin-top:5px"></div>
                 </div>
                 <div>
                     <span id="rmmRemoteBadge">Nordbase Remote <span id="rmmRemoteDevice"></span></span>
                     <div id="idx_deskFullBtn2" onclick=deskToggleFull(event)>&nbsp;&#x2716;</div>
                     <input type="button" id="autoconnectbutton1" value="AutoConnect" onclick=autoConnectDesktop(event) onkeypress="return false" onkeydown="return false" style="display:none" />
-                    <span id=connectbutton1span><input type=button id=connectbutton1 cmenu="deskConnectButton" value="Connect" onclick=connectDesktop(event,3) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
+                    <span id=connectbutton1span><input type=button id=connectbutton1 cmenu="deskConnectButton" value="Anslut" onclick=connectDesktop(event,3) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
                     <span id=connectbutton1hspan>&nbsp;<input type=button id=connectbutton1h value="HW Connect" title="Connect using Intel AMT hardware KVM" onclick=connectDesktop(event,2) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
-                    <span id=disconnectbutton1span>&nbsp;<input type=button id=disconnectbutton1 value="End session" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false" /></span>
-                    &nbsp;<span id="deskstatus">Waiting</span><span id="deskmetadata"></span>
+                    <span id=disconnectbutton1span><input type=button id=disconnectbutton1 value="Avsluta" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false" /></span>
+                    <span id="deskstatus">Väntar</span><span id="deskmetadata"></span>
                 </div>
             </div>
             <div id=deskarea3x style="max-height:calc(100vh - 52px);height:calc(100vh - 56px);">
@@ -421,16 +640,26 @@
                 <div id=DeskParent>
                     <canvas id=Desk width=640 height=480 oncontextmenu="return false" onmousedown=dmousedown(event) onmouseup=dmouseup(event) onmousemove=dmousemove(event) onmousewheel=dmousewheel(event)></canvas>
                 </div>
+                <div id="rmmReconnect" role="status" aria-live="polite">
+                    <div>
+                        <div class="rmm-spin"></div>
+                        <div id="rmmReconnectTitle">Ansluter igen…</div>
+                        <div id="rmmReconnectText"></div>
+                        <button type="button" id="rmmReconnectButton" class="rmm-btn" onclick="rmmManualReconnect()">Anslut igen</button>
+                    </div>
+                </div>
                 <div id=p11DeskConsoleMsg style="display:none;text-align:left;cursor:pointer;position:absolute;left:30px;top:17px;color:yellow;background-color:rgba(0,0,0,0.6);padding:10px;border-radius:5px" onclick=clearConsoleMsg()></div>
             </div>
             <div id=deskarea4 class="areaFoot" style="min-height:24px">
                 <div class="toright2">
-                    <span id="DeskLatency" style="line-height:22px;width:50px"  title="Desktop Session Latency"></span>
-                    <span id="DeskTimer" style="line-height:22px" title="Session time"></span>&nbsp;
-                    <select id=termdisplays style="display:none" onchange=deskSetDisplay(event) onkeypress="return false" onkeydown="return false"></select>&nbsp;
+                    <div id="rmmDisplays" class="rmm-seg" role="group" aria-label="Skärmar" style="display:none"></div>
+                    <span id="DeskLatency" style="line-height:22px;width:50px"  title="Fördröjning"></span>
+                    <span id="p11power"></span>
+                    <span id="DeskTimer" style="line-height:22px" title="Sessionens tid"></span>
+                    <select id=termdisplays style="display:none" onchange=deskSetDisplay(event) onkeypress="return false" onkeydown="return false"></select>
                     <span id=DeskSaveImageButton title="Save a screenshot of the remote desktop"><img src='images/icon-camera.png' onclick=deskSaveImage() height=16 width=16 style=padding-top:2px /></span>
                 </div>
-                <div style="height:22px">
+                <div class="rmm-keys" id="rmmKeys">
                     <select id="deskkeys">
                         <option value=10>Ctrl+Alt+Del</option>
                         <option value=5>Win</option>
@@ -447,9 +676,17 @@
                         <option value=12>Win+Right</option>
                     </select>
                     <input id="DeskWD" type=button value="Send" onkeypress="return false" onkeydown="return false" onclick="deskSendKeys()" />
-                    <input id="DeskClip" style="" type="button" value="Clipboard" onkeypress="return false" onkeydown="return false" onclick="showDeskClip()" />
-                    <input id="DeskType" style="" type="button" value="Type" onkeypress="return false" onkeydown="return false" onclick="showDeskType()" />
-                    <label><span id="DeskControlSpan" title="Toggle mouse and keyboard input"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" />Control input</span></label>&nbsp;
+                    <button type="button" class="rmm-btn rmm-quick" data-key="10" onclick="rmmQuickKey(10)" title="Skickar Ctrl+Alt+Del, även på inloggningsskärmen">Ctrl+Alt+Del</button>
+                    <button type="button" class="rmm-btn rmm-quick" data-key="5" onclick="rmmQuickKey(5)" title="Windows-tangenten (Start)">Win</button>
+                    <button type="button" class="rmm-btn rmm-quick" data-key="esc" onclick="rmmQuickKey('esc')">Esc</button>
+                    <button type="button" class="rmm-btn rmm-quick" data-key="tab" onclick="rmmQuickKey('tab')">Tab</button>
+                    <button type="button" class="rmm-btn rmm-quick" data-key="9" onclick="rmmQuickKey(9)" title="Byt fönster">Alt+Tab</button>
+                    <button type="button" class="rmm-btn rmm-quick" data-key="7" onclick="rmmQuickKey(7)" title="Stäng fönstret">Alt+F4</button>
+                    <span class="rmm-sep"></span>
+                    <input id="DeskType" style="" type="button" value="Skriv text" title="Skriv in text som tangenttryck" onkeypress="return false" onkeydown="return false" onclick="showDeskType()" />
+                    <input id="DeskClip" style="" type="button" value="Urklipp" onkeypress="return false" onkeydown="return false" onclick="showDeskClip()" />
+                    <button type="button" id="rmmMacButton" class="rmm-btn rmm-toggle" aria-pressed="false" onclick="rmmToggleMacKeys()" title="Mac-tangentbord till Windows: Option ger @ £ $ € { [ ] } \ | ~ och Cmd fungerar som Ctrl">Mac-tangenter</button>
+                    <label><span id="DeskControlSpan" title="Slå av för att bara titta"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" />Styr datorn</span></label>
                 </div>
             </div>
         </div>
@@ -469,9 +706,9 @@
                 <div id="p12power" style="margin-top:3px;margin-right:4px;float:right"></div>
             </div>
             <div>
-                <span id="connectbutton2span"><input type="button" id="connectbutton2" cmenu="termConnectButton" value="Connect" onclick=connectTerminal(event,1) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
-                <span id="disconnectbutton2span">&nbsp;<input type="button" id="disconnectbutton2" value="Disconnect" onclick=connectTerminal(event,0) onkeypress="return false" onkeydown="return false" /></span>
-                &nbsp;<span id="termstatus">Disconnected</span><span id="termtitle"></span>
+                <span id="connectbutton2span"><input type="button" id="connectbutton2" cmenu="termConnectButton" value="Anslut" onclick=connectTerminal(event,1) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
+                <span id="disconnectbutton2span">&nbsp;<input type="button" id="disconnectbutton2" value="Avsluta" onclick=connectTerminal(event,0) onkeypress="return false" onkeydown="return false" /></span>
+                &nbsp;<span id="termstatus">Väntar</span><span id="termtitle"></span>
             </div>
         </div>
         <div id="termarea3xdiv" style="position:absolute;top:28px;bottom:28px;left:0;right:0"></div>
@@ -511,37 +748,37 @@
                     <div id="p13power" style="margin-top:3px;margin-right:4px;float:right"></div>
                 </div>
                 <div>
-                    <input id=p13Connect value="Connect" onclick=connectFiles(event) type="button" />
-                    &nbsp;<span id=p13Status>Disconnected</span>
+                    <input id=p13Connect value="Anslut" onclick=connectFiles(event) type="button" />
+                    &nbsp;<span id=p13Status>Väntar</span>
                 </div>
             </div>
             <div id="fileArea2" class="areaHead2" valign=bottom>
                 <div id="p13rightOfButtons" class="toright2"></div>
                 <div>
-                    <input type=button id=p13FolderUp disabled="disabled" onclick="p13folderup()" value="Up" />&nbsp;
-                    <input type=button id=p13SelectAllButton disabled="disabled" onclick="p13selectallfile()" value="Select All" />&nbsp;
-                    <input type=button id=p13RenameFileButton disabled="disabled" value="Rename" onclick="p13renamefile()" />&nbsp;
-                    <input type=button id=p13DeleteFileButton disabled="disabled" value="Delete" onclick="p13deletefile()" />&nbsp;
-                    <input type=button id=p13ViewFileButton disabled="disabled" value="Edit" onclick="p13viewfile()" />&nbsp;
-                    <input type=button id=p13NewFolderButton disabled="disabled" value="New Folder" onclick="p13createfolder()" />&nbsp;
-                    <input type=button id=p13UploadButton disabled="disabled" value="Upload" onclick="p13uploadFile()" />&nbsp;
-                    <input type=button id=p13CutButton disabled="disabled" value="Cut" onclick="p13copyFile(1)" />&nbsp;
-                    <input type=button id=p13CopyButton disabled="disabled" value="Copy" onclick="p13copyFile(0)" />&nbsp;
-                    <input type=button id=p13PasteButton disabled="disabled" value="Paste" onclick="p13pasteFile()" />&nbsp;
+                    <input type=button id=p13FolderUp disabled="disabled" onclick="p13folderup()" value="Upp" />&nbsp;
+                    <input type=button id=p13SelectAllButton disabled="disabled" onclick="p13selectallfile()" value="Markera alla" />&nbsp;
+                    <input type=button id=p13RenameFileButton disabled="disabled" value="Byt namn" onclick="p13renamefile()" />&nbsp;
+                    <input type=button id=p13DeleteFileButton disabled="disabled" value="Ta bort" onclick="p13deletefile()" />&nbsp;
+                    <input type=button id=p13ViewFileButton disabled="disabled" value="Redigera" onclick="p13viewfile()" />&nbsp;
+                    <input type=button id=p13NewFolderButton disabled="disabled" value="Ny mapp" onclick="p13createfolder()" />&nbsp;
+                    <input type=button id=p13UploadButton disabled="disabled" value="Ladda upp" onclick="p13uploadFile()" />&nbsp;
+                    <input type=button id=p13CutButton disabled="disabled" value="Klipp ut" onclick="p13copyFile(1)" />&nbsp;
+                    <input type=button id=p13CopyButton disabled="disabled" value="Kopiera" onclick="p13copyFile(0)" />&nbsp;
+                    <input type=button id=p13PasteButton disabled="disabled" value="Klistra in" onclick="p13pasteFile()" />&nbsp;
                     <input type=button id=p13ZipButton disabled="disabled" value="Zip" onclick="p13zipFiles()" />&nbsp;
-                    <input type=button id=p13RefreshButton disabled="disabled" value="Refresh" onclick="p13folderup(9999)" />&nbsp;
-                    <input type=button id=p13FindButton disabled="disabled" value="Find" onclick="p13findfile()" />&nbsp;
+                    <input type=button id=p13RefreshButton disabled="disabled" value="Uppdatera" onclick="p13folderup(9999)" />&nbsp;
+                    <input type=button id=p13FindButton disabled="disabled" value="Sök" onclick="p13findfile()" />&nbsp;
                 </div>
             </div>
             <div class="areaHead3" style="line-height:28px">
                 <div class="toright2">
                     <select id=p13sortdropdown onchange=p13updateFiles()>
-                        <option value=1 selected="selected">Sort by name</option>
-                        <option value=2>Sort by size</option>
-                        <option value=3>Sort by date</option>
-                        <option value=4>Descend by name</option>
-                        <option value=5>Descend by size</option>
-                        <option value=6>Descend by date</option>
+                        <option value=1 selected="selected">Namn A–Ö</option>
+                        <option value=2>Storlek, minst först</option>
+                        <option value=3>Datum, äldst först</option>
+                        <option value=4>Namn Ö–A</option>
+                        <option value=5>Storlek, störst först</option>
+                        <option value=6>Datum, nyast först</option>
                     </select>
                 </div>
                 <div>&nbsp;&nbsp;<span id="p13currentpath"></span></div>
@@ -581,12 +818,12 @@
             <div id=dialog7 style="">
                 <div id="d7meshkvm">
                     <h4>Nordbase Remote</h4>
-                    <div>
-                        <div>Quality</div>
+                    <div class="rmm-hide">
+                        <div>Kvalitet</div>
                         <select id="d7bitmapquality" dir="rtl"></select>
                     </div>
-                    <div>
-                        <div>Scaling</div>
+                    <div class="rmm-hide">
+                        <div>Skalning</div>
                         <select id="d7bitmapscaling" style="" dir="rtl">
                             <option selected=selected value=1024>100%</option>
                             <option value=896>87.5%</option>
@@ -598,21 +835,33 @@
                             <option value=128>12.5%</option>
                         </select>
                     </div>
-                    <div>
-                        <div>Frame rate</div>
+                    <div class="rmm-hide">
+                        <div>Bilder per sekund</div>
                         <select id="d7framelimiter" dir="rtl">
-                            <option selected=selected value=50>Fast</option>
-                            <option value=100>Medium</option>
-                            <option value=400>Slow</option>
-                            <option value=1000>Very slow</option>
+                            <option selected=selected value=50>Snabb</option>
+                            <option value=100>Mellan</option>
+                            <option value=400>Långsam</option>
+                            <option value=1000>Mycket långsam</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div>Bildformat</div>
+                        <select id="d7rmmEncoding">
+                            <option value="auto">WebP om det går (bäst)</option>
+                            <option value="jpeg">Alltid JPEG</option>
                         </select>
                     </div>
                     <div id="d7desktopOtherSettings">
-                        <div>Input</div>
+                        <div>Mus och tangentbord</div>
                         <div id="d7otherset2" style="display:block">
-                            <label style="display:block"><input type="checkbox" id="d7deskSwapMouse" />Swap Mouse Buttons</label>
-                            <label style="display:block"><input type="checkbox" id="d7deskRemoteKeyMap" />Use Remote Keyboard Map</label>
+                            <label style="display:block"><input type="checkbox" id="d7rmmMacKeys" />Mac-tangentbord till Windows</label>
+                            <label style="display:block"><input type="checkbox" id="d7deskSwapMouse" />Byt plats på musknapparna</label>
+                            <label style="display:block"><input type="checkbox" id="d7deskRemoteKeyMap" />Använd fjärrdatorns tangentbordslayout</label>
                         </div>
+                    </div>
+                    <div>
+                        <div>Bild just nu</div>
+                        <div id="d7rmmInfo" style="font-size:12px;color:var(--nordbase-muted)"></div>
                     </div>
                 </div>
                 <div id="d7amtkvm">
@@ -638,9 +887,9 @@
             </div>
         </div>
         <div id="idx_dlgButtonBar">
-            <input id="idx_dlgCancelButton" type="button" value="Cancel" style="" onclick="dialogclose(0)">
+            <input id="idx_dlgCancelButton" type="button" value="Avbryt" style="" onclick="dialogclose(0)">
             <input id="idx_dlgOkButton" type="button" value="OK" style="" onclick="dialogclose(1)">
-            <div><input id="idx_dlgDeleteButton" type="button" value="Delete" style="display:none" onclick="dialogclose(2)"></div>
+            <div><input id="idx_dlgDeleteButton" type="button" value="Ta bort" style="display:none" onclick="dialogclose(2)"></div>
         </div>
     </div>
     <script>
@@ -650,7 +899,7 @@
         var agentPresent = true;
         var intelAmtPresent = false;
         var deskAspectRatio = 0;
-        var desktopsettings = { encoding: 2, showfocus: false, showmouse: true, showcad: true, quality: 40, scaling: 1024, framerate: 100, localkeymap: false, remotekeymap: false };
+        var desktopsettings = { encoding: 2, showfocus: false, showmouse: true, showcad: true, quality: 40, scaling: 1024, framerate: 50, localkeymap: false, remotekeymap: false };
         var serverPublicNamePort = '{{{serverDnsName}}}:{{{serverPublicPort}}}';
         var domain = '{{{domain}}}';
         var domainUrl = '{{{domainurl}}}';
@@ -669,11 +918,11 @@
         var clipboardManualGetPending = false;
         var clipboardManualGetTimer = null;
         var shareExpiryTimer = null;
-        var clipboardStatus = 'Clipboard moves only when you press Pull or Push.';
+        var clipboardStatus = 'Urklippet flyttas bara när du trycker Hämta eller Skicka.';
         var rmmDesktopReconnectTimer = null;
         var rmmDesktopConnectWatchdogTimer = null;
         var rmmDesktopReconnectEnabled = true;
-        var StatusStrs = ["Waiting", "Connecting", "Preparing", "Connected", "Hardware connected"];
+        var StatusStrs = ["Väntar", "Ansluter", "Förbereder", "Ansluten", "Ansluten (hårdvara)"];
         var nodeName = decodeURIComponent('{{{nodeName}}}');
         var remotePlatform = '{{{remotePlatform}}}';
         var webPageFullScreen = false;
@@ -768,6 +1017,7 @@
             QS('p12')['left'] = (featureCount > 1) ? '54px' : '0px';
             QS('p13')['left'] = (featureCount > 1) ? '54px' : '0px';
 
+            rmmInit();
             deskAdjust();
             setTimeout(rmmRemoteAutoConnect, 250);
         }
@@ -797,9 +1047,9 @@
                     updateDesktopButtons();
                     return;
                 }
-                if (message.action == 'close') { closeShareControl(); updateClipboardStatus('Clipboard channel closed (' + String(message.cause || 'closed').substring(0, 40) + ')'); return; }
-                if ((message.action == 'clipboard') && (message.status == 'offline')) { updateClipboardStatus('Device is offline.'); return; }
-                if ((message.action == 'clipboard') && (message.status == 'throttled')) { updateClipboardStatus('Clipboard is busy; press again in a moment.'); return; }
+                if (message.action == 'close') { closeShareControl(); updateClipboardStatus('Urklippet är stängt (' + String(message.cause || 'stängt').substring(0, 40) + ')'); return; }
+                if ((message.action == 'clipboard') && (message.status == 'offline')) { updateClipboardStatus('Datorn är inte ansluten.'); return; }
+                if ((message.action == 'clipboard') && (message.status == 'throttled')) { updateClipboardStatus('Urklippet är upptaget. Tryck igen om en stund.'); return; }
                 if ((message.type == 'getclip') && (typeof message.data == 'string')) {
                     // Only an answer to the operator's own "Pull from device" is used; anything else is ignored.
                     if (!NordbaseClipboard.acceptRemoteClipboard({ manualGetPending: clipboardManualGetPending })) return;
@@ -807,7 +1057,7 @@
                     if (Q('d2clipText')) { Q('d2clipText').value = message.data; }
                     writeLocalClipboardText(message.data);
                 } else if (message.type == 'setclip') {
-                    updateClipboardStatus(message.success === true ? 'Sent to remote clipboard' : 'Clipboard update failed');
+                    updateClipboardStatus(message.success === true ? 'Skickat till datorns urklipp' : 'Det gick inte att skicka');
                 }
             };
             shareControl.onclose = function () {
@@ -842,7 +1092,7 @@
             if (shareExpiryTimer != null) { clearTimeout(shareExpiryTimer); shareExpiryTimer = null; }
             if (expire == '') return;
             var left = parseInt(expire) - Date.now();
-            if (left <= 0) { closeShareControl(); return; }
+            if (left <= 0) { closeShareControl(); rmmOnShareExpired(); return; }
             shareExpiryTimer = setTimeout(scheduleShareExpiryClose, Math.min(left, 0x7FFFFFFF));
         }
 
@@ -862,7 +1112,7 @@
         }
 
         function sendShareClipboard(operation, data) {
-            if (!clipboardActionAllowed()) { updateClipboardStatus('Clipboard works only in the focused window with a connected session.'); return false; }
+            if (!clipboardActionAllowed()) { updateClipboardStatus('Urklippet fungerar bara i fönstret du använder, när datorn är ansluten.'); return false; }
             var message = { action: 'clipboard', operation: operation };
             if (operation == 'set') {
                 if (viewOnly == 1) return false;
@@ -880,10 +1130,10 @@
 
         function writeLocalClipboardText(text) {
             function clipboardWriteSucceeded() {
-                updateClipboardStatus('Remote clipboard copied locally');
+                updateClipboardStatus('Kopierat till ditt urklipp');
             }
             function clipboardWriteFallback() {
-                updateClipboardStatus('Received. The browser blocked writing your clipboard; copy the text from the box.');
+                updateClipboardStatus('Hämtat. Webbläsaren stoppade kopieringen, kopiera texten från rutan.');
             }
             if ((navigator.clipboard != null) && (navigator.clipboard.writeText != null)) {
                 navigator.clipboard.writeText(text).then(clipboardWriteSucceeded).catch(clipboardWriteFallback);
@@ -894,6 +1144,7 @@
 
         function stopRmmRemoteRuntime() {
             rmmDesktopReconnectEnabled = false;
+            rmmStopTimers();
             if (shareExpiryTimer != null) { clearTimeout(shareExpiryTimer); shareExpiryTimer = null; }
             if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
             if (rmmDesktopConnectWatchdogTimer != null) { clearTimeout(rmmDesktopConnectWatchdogTimer); rmmDesktopConnectWatchdogTimer = null; }
@@ -902,10 +1153,14 @@
 
         function scheduleDesktopReconnect() {
             if (!rmmDesktopReconnectEnabled || (rmmDesktopReconnectTimer != null) || shareIsExpired() || ((features & 2) == 0)) return;
+            // Back-off: 0.5 s, 1 s, 2 s, then every 5 s, until the share expires (Nordbase step 1).
+            var delay = RMM_RECONNECT_STEPS[Math.min(rmmReconnectAttempt, RMM_RECONNECT_STEPS.length - 1)];
+            rmmReconnectAttempt++;
+            rmmShowReconnect('retry', delay);
             rmmDesktopReconnectTimer = setTimeout(function () {
                 rmmDesktopReconnectTimer = null;
                 if ((desktop == null) && rmmDesktopReconnectEnabled && !shareIsExpired()) { connectDesktop(null, 1); }
-            }, 2500);
+            }, delay);
         }
 
         function armDesktopConnectWatchdog() {
@@ -917,10 +1172,10 @@
                 desktop = null;
                 stalledDesktop.onStateChanged = null;
                 try { stalledDesktop.Stop(); } catch (ex) { }
-                QH('deskstatus', 'Waiting');
+                QH('deskstatus', 'Ansluter igen');
                 updateDesktopButtons();
                 scheduleDesktopReconnect();
-            }, 15000);
+            }, 10000);
         }
 
 
@@ -1021,6 +1276,10 @@
             QV('DeskClip', (features & 2) != 0);
             QE('DeskClip', (deskState == 3) && shareControlReady);
             QE('DeskType', deskState == 3);
+            QV('DeskType', viewOnly != 1);
+            var quick = document.querySelectorAll('.rmm-quick');
+            for (var qi = 0; qi < quick.length; qi++) { quick[qi].disabled = (deskState != 3); quick[qi].style.display = (viewOnly == 1) ? 'none' : ''; }
+            QV('rmmMacButton', viewOnly != 1);
             QV('DeskWD', viewOnly != 1);
             QE('DeskWD', deskState == 3);
             QV('deskkeys', viewOnly != 1);
@@ -1173,9 +1432,10 @@
                     if (desktopsettings.framerate) { desktop.m.FrameRateTimer = desktopsettings.framerate; }
                     desktop.m.onDisplayinfo = deskDisplayInfo;
                     desktop.m.onScreenSizeChange = deskAdjust;
+                    rmmOnDesktopCreated(desktop);
                     desktop.Start(null);
                     armDesktopConnectWatchdog();
-                    desktop.latency.callback = function (ms) { /* console.log('latency', ms); */ updateSessionTime(); };
+                    desktop.latency.callback = function (ms) { rmmOnRtt(ms); updateSessionTime(); };
                     desktop.contype = 1;
                 }
             } else {
@@ -1191,7 +1451,7 @@
             var str = '', viewerCount = 0;
             if (conn && (conn.State == 3)) {
                 if (conn.metadata && conn.metadata.users) { for (var i in conn.metadata.users) { viewerCount += conn.metadata.users[i]; } }
-                if (viewerCount > 1) { str = '<span onclick=showSessionMetadata(1) style=cursor:pointer>' + format(", {0} watching", viewerCount) + '</span>'; }
+                if (viewerCount > 1) { str = '<span onclick=showSessionMetadata(1) style=cursor:pointer>' + format(", {0} tittar", viewerCount) + '</span>'; }
             }
             QH('deskmetadata', str);
             if ((conn == desktop) && (xxdialogTag == ('sessionMetadata1'))) { showSessionMetadata(1); }
@@ -1267,6 +1527,7 @@
                     webRtcDesktopReset();
                     deskPreferedStickyDisplay = 0;
                     closeShareControl(); // the clipboard channel ends with the desktop session
+                    rmmOnDesktopDown();
                     scheduleDesktopReconnect();
                     break;
                 case 2:
@@ -1278,6 +1539,7 @@
                     desktop.startTime = new Date();
                     if (updateSessionTimer == null) { updateSessionTimer = setInterval(updateSessionTime, 1000); }
                     setupShareControl();
+                    rmmOnDesktopUp();
                     break;
                 default:
                     //console.log('Unknown onDesktopStateChange state', state);
@@ -1319,7 +1581,8 @@
             if (xxdialogMode) return;
             applyDesktopSettings();
             updateDesktopButtons();
-            setDialogMode(7, "Nordbase Remote settings", 3, showDesktopSettingsChanged);
+            rmmFillSettings();
+            setDialogMode(7, "Inställningar", 3, showDesktopSettingsChanged);
         }
 
         function showDesktopSettingsChanged() {
@@ -1332,15 +1595,15 @@
             desktopsettings.swapmouse = d7deskSwapMouse.checked;
             desktopsettings.remotekeymap = d7deskRemoteKeyMap.checked;
             desktopsettings.localkeymap = d7localKeyMap.checked;
-            localStorage.setItem('desktopsettings', JSON.stringify(desktopsettings));
+            try { localStorage.setItem('desktopsettings', JSON.stringify(desktopsettings)); } catch (ex) { }
+            rmmReadSettings();
             applyDesktopSettings();
             if (desktop) {
                 if (desktop.contype == 1) {
                     desktop.m.SwapMouse = desktopsettings.swapmouse;
                     desktop.m.remoteKeyMap = desktopsettings.remotekeymap;
-                    if (desktop.State != 0) {
-                        desktop.m.SendCompressionLevel(1, desktopsettings.quality, desktopsettings.scaling, desktopsettings.framerate);
-                    }
+                    // Quality, scaling and frame rate are set by the step-1 quality control (Auto / Skarp / Snabb).
+                    if (desktop.State == 3) { rmmApplyProfile('settings', true); }
                 }
                 if (desktop.contype == 2) {
                     if (desktop.State != 0) { desktop.Stop(); setTimeout(function () { connectDesktop(null, 2); }, 50); }
@@ -1557,6 +1820,7 @@
                     if (limitedInputAllowed == true) { if ((e.altKey == true) || (e.ctrlKey == true) || ((e.keyCode < 32) && (e.keyCode != 8) && (e.keyCode != 13)) || (e.keyCode > 90)) return false; }
                 }
                 */
+                if (rmmKeyPress(e)) { return haltEvent(e); }
                 return desktop.m.handleKeys(e);
             }
         }
@@ -1574,6 +1838,7 @@
                     if (limitedInputAllowed == true) { if ((e.altKey == true) || (e.ctrlKey == true) || ((e.keyCode < 32) && (e.keyCode != 8) && (e.keyCode != 13)) || (e.keyCode > 90)) return false; }
                 }
                 */
+                if (rmmKeyDown(e)) { return haltEvent(e); }
                 return desktop.m.handleKeyDown(e);
             }
         }
@@ -1591,6 +1856,7 @@
                     if (limitedInputAllowed == true) { if ((e.altKey == true) || (e.ctrlKey == true) || ((e.keyCode < 32) && (e.keyCode != 8) && (e.keyCode != 13)) || (e.keyCode > 90)) return false; }
                 }
                 */
+                if (rmmKeyUp(e)) { return haltEvent(e); }
                 return desktop.m.handleKeyUp(e);
             }
         }
@@ -1599,9 +1865,9 @@
         function showDeskType() {
             if (xxdialogMode || desktop == null || desktop.State != 3) return;
             Q('DeskType').blur();
-            var x = '<div>' + "Enter text and click OK to remotely type it using a US english keyboard. Make sure to place the remote cursor at the correct position before proceeding." + '<div>';
-            x += '<textarea id=d2typeText style="margin-top:5px;width:100%;height:184px;resize:none" maxlength=2000></textarea>';
-            setDialogMode(2, "Remote Keyboard Entry", 3, showDeskTypeEx, x);
+            var x = '<div>' + "Skriv eller klistra in text här. Tryck OK så skrivs den in på datorn, tecken för tecken. Klicka först där texten ska hamna." + '</div>';
+            x += '<textarea id=d2typeText style="margin-top:8px;width:100%;height:184px;resize:none" maxlength=2000></textarea>';
+            setDialogMode(2, "Skriv text", 3, showDeskTypeEx, x);
             Q('d2typeText').focus();
         }
 
@@ -1623,8 +1889,8 @@
             } else {
                 // MeshAgent
                 if (desktopsettings.remotekeymap !== true) {
-                    // New unicode typing
-                    desktop.m.SendStringUnicode(txt);
+                    // Unicode typing; line breaks and tabs are sent as the Enter and Tab keys (Nordbase step 1).
+                    rmmTypeText(txt);
                 } else {
                     // Old scan code typing. This is for non-unicode system.
                     for (var i in txt) {
@@ -1654,14 +1920,14 @@
             if (xxdialogMode || desktop == null || desktop.State != 3) return;
             Q('DeskClip').blur();
             var x = '';
-            x += '<input id=dlgClipGet type=button value="Pull from device" style=width:130px onclick=showDeskClipGet()>';
-            if (viewOnly != 1) { x += '<input id=dlgClipSet type=button value="Push to device" style=width:130px onclick=showDeskClipSet()>'; }
+            x += '<input id=dlgClipGet type=button value="Hämta från datorn" style="min-width:150px;height:40px;margin-right:8px" onclick=showDeskClipGet()>';
+            if (viewOnly != 1) { x += '<input id=dlgClipSet type=button value="Skicka till datorn" style="min-width:150px;height:40px" onclick=showDeskClipSet()>'; }
             x += '<div id=dlgClipStatus style="margin:8px 0" ></div>';
-            x += '<div style="margin:0 0 8px;color:#666">The clipboard never syncs by itself. Pull copies the device clipboard here; Push sends the text in the box to the device. Text only; files use the Files tab.</div>';
+            x += '<div style="margin:0 0 8px;color:var(--nordbase-muted)">Urklippet flyttas aldrig av sig självt. Hämta kopierar datorns urklipp hit. Skicka lägger texten i rutan i datorns urklipp. Bara text. Filer går via Filer.</div>';
             x += '<textarea id=d2clipText style="width:100%;height:184px;resize:none" maxlength=65535></textarea>';
-            x += '<input type=button value="Close" style=width:80px;float:right onclick=dialogclose(0)><div style=height:26px;margin-top:3px><span id=linuxClipWarn style=display:none>' + "Remote clipboard is valid for 60 seconds." + '</span>&nbsp;</div><div></div>';
-            setDialogMode(2, "Remote Clipboard", 8, null, x, 'clipboard');
-            updateClipboardStatus(shareControlReady ? clipboardStatus : 'Clipboard channel is connecting…');
+            x += '<input type=button value="Stäng" style="min-width:80px;height:40px;float:right" onclick=dialogclose(0)><div style=height:26px;margin-top:3px><span id=linuxClipWarn style=display:none>' + "Urklippet gäller i 60 sekunder." + '</span>&nbsp;</div><div></div>';
+            setDialogMode(2, "Urklipp", 8, null, x, 'clipboard');
+            updateClipboardStatus(shareControlReady ? clipboardStatus : 'Urklippet ansluter…');
             Q('d2clipText').focus();
         }
 
@@ -1670,13 +1936,13 @@
             clearManualGet();
             if (!sendShareClipboard('get')) return;
             clipboardManualGetPending = true;
-            clipboardManualGetTimer = setTimeout(function () { clipboardManualGetTimer = null; if (clipboardManualGetPending) { clipboardManualGetPending = false; updateClipboardStatus('No answer from the device'); } }, 5000);
-            updateClipboardStatus('Reading the device clipboard…');
+            clipboardManualGetTimer = setTimeout(function () { clipboardManualGetTimer = null; if (clipboardManualGetPending) { clipboardManualGetPending = false; updateClipboardStatus('Inget svar från datorn'); } }, 5000);
+            updateClipboardStatus('Läser datorns urklipp…');
         }
 
         function showDeskClipSet() {
             if (desktop == null || desktop.State != 3) return;
-            if (sendShareClipboard('set', Q('d2clipText').value)) { updateClipboardStatus('Sending to the device…'); }
+            if (sendShareClipboard('set', Q('d2clipText').value)) { updateClipboardStatus('Skickar till datorn…'); }
             //QV('linuxClipWarn', currentNode && currentNode.agent && (currentNode.agent.id > 4) && (currentNode.agent.id != 21) && (currentNode.agent.id != 22));
         }
         // Send CTRL-ALT-DEL
@@ -1835,11 +2101,12 @@
             }
             QH('termdisplays', displaySelector);
             QV('termdisplays', displayCount > 1);
+            rmmRenderDisplays(displays, selDisplay);
         }
 
         function deskGetDisplayNumbers(e) { desktop.m.GetDisplayNumbers(); }
         var deskPreferedStickyDisplay = -1;
-        function deskSetDisplay(e) { desktop.m.SetDisplay(deskPreferedStickyDisplay = parseInt(Q('termdisplays').value)); Q('termdisplays').blur(); }
+        function deskSetDisplay(e) { rmmSelectDisplay(parseInt(Q('termdisplays').value)); Q('termdisplays').blur(); }
 
         // Double click detection. This is important for macOS.
         var dblClickDetectArgs = { t: 0, x: 0, y: 0 };
@@ -2144,7 +2411,7 @@
         }
 
         function onFilesStateChange(xfiles, state) {
-            p13Connect.value = (state == 0) ? "Connect" : "Disconnect";
+            p13Connect.value = (state == 0) ? "Anslut" : "Koppla från";
             var str = StatusStrs[state];
             if (files.webRtcActive == true) { str += ", WebRTC"; }
             Q('p13Status').textContent = str;
@@ -2447,14 +2714,14 @@
         function p13getFileSelDirCount() { var cc = 0, checkboxes = document.getElementsByName('fd'); for (var i = 0; i < checkboxes.length; i++) { if ((checkboxes[i].checked) && (checkboxes[i].attributes.file.value == '999')) cc++; } return cc; }
         function p13getFileCount() { var cc = 0; var checkboxes = document.getElementsByName('fd'); return checkboxes.length; }
         function p13selectallfile() { var nv = (p13getFileSelCount() == 0), checkboxes = document.getElementsByName('fd'); for (var i = 0; i < checkboxes.length; i++) { checkboxes[i].checked = nv; } p13setActions(); }
-        function p13createfolder() { setDialogMode(2, "New Folder", 3, p13createfolderEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% />'); focusTextBox('p13renameinput'); p13fileNameCheck(); }
+        function p13createfolder() { setDialogMode(2, "Ny mapp", 3, p13createfolderEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% />'); focusTextBox('p13renameinput'); p13fileNameCheck(); }
         function p13createfolderEx() { files.sendText({ action: 'mkdir', reqid: 1, path: p13filetreelocation.join('/') + '/' + Q('p13renameinput').value }); p13folderup(999); }
-        function p13deletefile() { var cc = p13getFileSelCount(), rec = (p13getFileSelDirCount() > 0) ? '<br /><br /><label><input type=checkbox id=p13recdeleteinput>' + "Recursive delete" + '</label><br>' : '<input type=checkbox id=p13recdeleteinput style=\'display:none\'>'; setDialogMode(2, "Delete", 3, p13deletefileEx, (cc > 1) ? (format("Delete {0} selected items?", cc) + rec) : ("Delete selected item?" + rec)); }
+        function p13deletefile() { var cc = p13getFileSelCount(), rec = (p13getFileSelDirCount() > 0) ? '<br /><br /><label><input type=checkbox id=p13recdeleteinput>' + "Ta bort mappar med innehåll" + '</label><br>' : '<input type=checkbox id=p13recdeleteinput style=\'display:none\'>'; setDialogMode(2, "Ta bort", 3, p13deletefileEx, (cc > 1) ? (format("Ta bort {0} markerade?", cc) + rec) : ("Ta bort det markerade?" + rec)); }
         function p13deletefileEx() { var delfiles = [], checkboxes = document.getElementsByName('fd'); for (var i = 0; i < checkboxes.length; i++) { if (checkboxes[i].checked) { delfiles.push(p13filetree.dir[checkboxes[i].value].n); } } files.sendText({ action: 'rm', reqid: 1, path: p13filetreelocation.join('/'), delfiles: delfiles, rec: Q('p13recdeleteinput').checked }); p13folderup(999); }
-        function p13renamefile() { var renamefile, checkboxes = document.getElementsByName('fd'); for (var i = 0; i < checkboxes.length; i++) { if (checkboxes[i].checked) { renamefile = p13filetree.dir[checkboxes[i].value].n; } } setDialogMode(2, "Rename", 3, p13renamefileEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% value="' + renamefile + '" />', { action: 'rename', path: p13filetreelocation.join('/'), oldname: renamefile }); focusTextBox('p13renameinput'); p13fileNameCheck(); }
+        function p13renamefile() { var renamefile, checkboxes = document.getElementsByName('fd'); for (var i = 0; i < checkboxes.length; i++) { if (checkboxes[i].checked) { renamefile = p13filetree.dir[checkboxes[i].value].n; } } setDialogMode(2, "Byt namn", 3, p13renamefileEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% value="' + renamefile + '" />', { action: 'rename', path: p13filetreelocation.join('/'), oldname: renamefile }); focusTextBox('p13renameinput'); p13fileNameCheck(); }
         function p13renamefileEx(b, t) { t.newname = Q('p13renameinput').value; files.sendText(t); p13folderup(999); }
         function p13fileNameCheck(e) { var x = isFilenameValid(Q('p13renameinput').value); QE('idx_dlgOkButton', x); if ((x == true) && (e != null) && (e.keyCode == 13)) { dialogclose(1); } }
-        function p13uploadFile() { setDialogMode(2, "Upload File", 3, p13uploadFileEx, '<input type=file name=files id=p13uploadinput style=width:100% multiple=multiple onchange="updateUploadDialogOk(\'p13uploadinput\')" />'); updateUploadDialogOk('p13uploadinput'); }
+        function p13uploadFile() { setDialogMode(2, "Ladda upp fil", 3, p13uploadFileEx, '<input type=file name=files id=p13uploadinput style=width:100% multiple=multiple onchange="updateUploadDialogOk(\'p13uploadinput\')" />'); updateUploadDialogOk('p13uploadinput'); }
         function updateUploadDialogOk(x) { QE('idx_dlgOkButton', Q('p13uploadinput').files.length > 0); }
         function p13uploadFileEx() { p13doUploadFiles(Q('p13uploadinput').files); }
         function p13viewfile() {
@@ -2472,7 +2739,7 @@
         function p13zipFiles() {
             var inputFiles = [], checkboxes = document.getElementsByName('fd');
             for (var i = 0; i < checkboxes.length; i++) { if (checkboxes[i].checked) { inputFiles.push(p13filetree.dir[checkboxes[i].value].n); } }
-            setDialogMode(2, "Zip Filename", 3, p13zipFilesEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% value="" />', { action: 'zip', path: p13filetreelocation.join('/'), files: inputFiles });
+            setDialogMode(2, "Namn på zip-filen", 3, p13zipFilesEx, '<input type=text id=p13renameinput maxlength=64 onkeyup=p13fileNameCheck(event) style=width:100% value="" />', { action: 'zip', path: p13filetreelocation.join('/'), files: inputFiles });
             focusTextBox('p13renameinput');
             p13fileNameCheck();
         }
@@ -2686,7 +2953,7 @@
                 p13uploadFileContinue(1, files);
             } else {
                 // Otherwise, prompt for confirmation
-                setDialogMode(2, "Upload File", 3, p13uploadFileContinue, format((overWriteCount == 1) ? "Upload will overwrite 1 file. Continue?" : "Upload will overwrite {0} files. Continue?", overWriteCount), files);
+                setDialogMode(2, "Ladda upp fil", 3, p13uploadFileContinue, format((overWriteCount == 1) ? "Upload will overwrite 1 file. Continue?" : "Upload will overwrite {0} files. Continue?", overWriteCount), files);
             }
         }
 
@@ -2885,7 +3152,7 @@
         function printDate(d) { return d.toLocaleDateString(urlargs.locale); }
         function printTime(d) { return d.toLocaleTimeString(urlargs.locale); }
         function printDateTime(d) { return d.toLocaleString(urlargs.locale); }
-        function printFlexDateTime(d) { if (printDate(new Date()) == printDate(d)) { return format("Session until {0}", printTime(d)); } else { return format("Session until {0}", printDateTime(d)); } }
+        function printFlexDateTime(d) { if (printDate(new Date()) == printDate(d)) { return format("Slutar {0}", d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })); } else { return format("Slutar {0}", printDateTime(d)); } }
         function getFileSizeStr(size) { if (typeof size != 'number') { size = 0; } if (size == 1) return "1 byte"; return format("{0} bytes", size); }
         function encodeURIComponentEx(txt) { return encodeURIComponent(txt).replace(/'/g, '%27'); };
         function focusTextBox(x) { setTimeout(function () { Q(x).selectionStart = Q(x).selectionEnd = 65535; Q(x).focus(); }, 0); }
@@ -2899,6 +3166,743 @@
             setTimeout(function() { try { if (element.parentNode) { document.body.removeChild(element); } } catch(e) { } }, 10000);
             if (closeDialog) { setDialogMode(0); }
         }
+
+        //
+        // Nordbase Remote step 1 (2026-11-15)
+        // Quality (Auto / Skarp / Snabb), WebP with a clean JPEG fallback, scaling to the window, one
+        // button per screen, quick keys, Mac -> Windows keyboard, reconnect with back-off and a connection
+        // indicator. Nothing here opens a new connection or sends data anywhere new: everything goes over
+        // the share's existing desktop relay, and only while it is connected. The clipboard rules of
+        // security review part 2 are untouched (manual Pull/Push only, focused window only).
+        //
+
+        var RMM_RECONNECT_STEPS = [500, 1000, 2000, 5000]; // then every 5 s until the share expires
+        var RMM_PROBE_MS = 2000;   // delay probe over the existing control channel (the agent echoes "rtt")
+        var RMM_DEAD_MS = 12000;   // no probe answer and no data for this long: the link is dead, reconnect
+        // Auto ladder. q = image quality (1-100), fr = minimum ms between frames (50 = 20 frames/s),
+        // f = share of the window's real pixel size that is asked for (becomes the agent's scaling).
+        var RMM_LADDER = [
+            { q: 60, fr: 50, f: 1.0 },
+            { q: 50, fr: 50, f: 1.0 },
+            { q: 40, fr: 80, f: 1.0 },
+            { q: 35, fr: 100, f: 0.85 },
+            { q: 30, fr: 150, f: 0.7 },
+            { q: 25, fr: 250, f: 0.55 },
+            { q: 20, fr: 400, f: 0.45 }
+        ];
+        var RMM_AUTO_START = 1;
+        var RMM_PROFILES = { sharp: { q: 70, fr: 50, f: 1.0 }, fast: { q: 30, fr: 100, f: 0.6 } };
+        // Characters a Swedish Windows keyboard makes with AltGr. Typed with Option on a Mac they are sent
+        // as the character itself, so they come out right whatever the remote keyboard layout is.
+        var RMM_ALTGR_CHARS = '@£$€{[]}\\|~µ';
+        var RMM_KEYCODES = {
+            Pause: 19, CapsLock: 20, Space: 32, Quote: 222, Minus: 189, NumpadMultiply: 106, NumpadAdd: 107, PrintScreen: 44,
+            Comma: 188, NumpadSubtract: 109, NumpadDecimal: 110, Period: 190, Slash: 191, NumpadDivide: 111, Semicolon: 186,
+            Equal: 187, BracketLeft: 219, Backslash: 220, BracketRight: 221, ContextMenu: 93, Backquote: 192, IntlBackslash: 226,
+            NumLock: 144, ScrollLock: 145, Backspace: 8, Tab: 9, Enter: 13, NumpadEnter: 13, Escape: 27, Delete: 46, Home: 36,
+            PageUp: 33, PageDown: 34, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, End: 35, Insert: 45,
+            F1: 112, F2: 113, F3: 114, F4: 115, F5: 116, F6: 117, F7: 118, F8: 119, F9: 120, F10: 121, F11: 122, F12: 123,
+            ShiftLeft: 16, ShiftRight: 16, ControlLeft: 17, ControlRight: 17
+        };
+        var RMM_EXTENDED = ['ShiftRight', 'AltRight', 'ControlRight', 'Home', 'End', 'Insert', 'Delete', 'PageUp', 'PageDown', 'NumpadDivide', 'NumpadEnter', 'NumLock', 'Pause', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
+
+        var rmmPrefs = { quality: 'auto', fit: true, macKeys: null, encoding: 'auto' };
+        var rmmNode = { display: null, native: null };
+        var rmmWebpBrowser = null;    // null = not known yet
+        var rmmWebpBroken = 0;        // WebP tiles this browser could not decode
+        var rmmAgentFormat = null;    // what the agent really sends: 'webp' or 'jpeg'
+        var rmmAutoStep = RMM_AUTO_START;
+        var rmmLastSent = null;       // last settings sent to the agent
+        var rmmAgentScaling = 1024;   // scaling the agent is using now
+        var rmmPendingScaling = null; // scaling sent, waiting for the agent's new screen size
+        var rmmPendingFrom = null;
+        var rmmPendingTimer = null;
+        var rmmScalingIgnored = false;
+        var rmmNative = null;         // remote screen size at 100 %
+        var rmmDisplayRestored = false;
+        var rmmResizeTimer = null;
+        var rmmTickTimer = null;
+        var rmmProbeTimer = null;
+        var rmmReconnectAttempt = 0;
+        var rmmHadPicture = false;
+        var rmmStale = false;
+        var rmmSnapshot = null;
+        var rmmLastReason = '';
+        var rmmLastDpr = window.devicePixelRatio || 1;
+        var rmmNet = { rtts: [], lastProbe: 0, lastReply: 0, lastData: 0, connectedAt: 0, state: 'off', bytes: 0, tiles: 0, rateBytes: 0, rateTiles: 0, rateAt: 0, decodeQueue: 0, eff: null, base: null, goodSince: 0, lastDown: 0, badTicks: 0, shakyTicks: 0 };
+        var rmmKeyState = { cmd: false, ctrlSent: false, alt: false, altSent: false, handled: {}, swallowPress: false };
+
+        function rmmStoreGet(key) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (ex) { return null; } }
+        function rmmStoreSet(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (ex) { } }
+        function rmmSavePrefs() { rmmStoreSet('nordbaseRemote.v1', rmmPrefs); }
+        function rmmNodeKey() { var h = 0, n = String(nodeName || ''); for (var i = 0; i < n.length; i++) { h = ((h * 31) + n.charCodeAt(i)) | 0; } return 'nordbaseRemote.node.' + (h >>> 0).toString(36); }
+        function rmmSaveNode() { rmmStoreSet(rmmNodeKey(), rmmNode); }
+
+        function rmmViewerIsMac() {
+            try { if (navigator.userAgentData && navigator.userAgentData.platform) { return /mac/i.test(navigator.userAgentData.platform); } } catch (ex) { }
+            return /mac/i.test(navigator.platform || '');
+        }
+        // On by default when the viewer is on macOS and the remote computer is not a Mac. Can be switched off.
+        function rmmMacKeysOn() {
+            if ((rmmPrefs.macKeys === true) || (rmmPrefs.macKeys === false)) return rmmPrefs.macKeys;
+            return rmmViewerIsMac() && (remotePlatform != 'macos');
+        }
+
+        function rmmInit() {
+            var p = rmmStoreGet('nordbaseRemote.v1');
+            if (p) {
+                if (['auto', 'sharp', 'fast'].indexOf(p.quality) >= 0) { rmmPrefs.quality = p.quality; }
+                if (typeof p.fit == 'boolean') { rmmPrefs.fit = p.fit; }
+                if (typeof p.macKeys == 'boolean') { rmmPrefs.macKeys = p.macKeys; }
+                if (p.encoding == 'jpeg') { rmmPrefs.encoding = 'jpeg'; }
+            }
+            var n = rmmStoreGet(rmmNodeKey());
+            if (n) {
+                if (typeof n.display == 'number') { rmmNode.display = n.display; }
+                if (n.native && (n.native.w > 0) && (n.native.h > 0)) { rmmNode.native = { w: n.native.w, h: n.native.h }; }
+            }
+            deskAspectRatio = rmmPrefs.fit ? 0 : 1;
+            if (typeof check_webp_feature == 'function') {
+                check_webp_feature('lossy', function (f, ok) { rmmWebpBrowser = (ok === true); rmmApplyProfile('webp-check'); });
+            } else { rmmWebpBrowser = false; }
+            // Buttons never take the keyboard focus: the keys belong to the remote computer.
+            rmmNoFocus(document.querySelectorAll('.rmm-btn, #DeskType, #DeskClip, #deskActionsSettings, #disconnectbutton1'));
+            window.addEventListener('resize', rmmOnWindowResize);
+            rmmWatchPixelRatio();
+            window.addEventListener('blur', rmmReleaseModifiers);
+            document.addEventListener('visibilitychange', function () { if (document.hidden) { rmmReleaseModifiers(); } });
+            document.addEventListener('fullscreenchange', rmmUpdateUi);
+            document.addEventListener('webkitfullscreenchange', rmmUpdateUi);
+            rmmUpdateUi();
+            rmmUpdateNet();
+        }
+
+        // Moving the window to a screen with another pixel density changes the sharpness we need.
+        function rmmWatchPixelRatio() {
+            if (!window.matchMedia) return;
+            try {
+                var mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+                var fn = function () { if (mq.removeEventListener) { mq.removeEventListener('change', fn); } else if (mq.removeListener) { mq.removeListener(fn); } rmmOnWindowResize(); rmmWatchPixelRatio(); };
+                if (mq.addEventListener) { mq.addEventListener('change', fn); } else if (mq.addListener) { mq.addListener(fn); }
+            } catch (ex) { }
+        }
+
+        function rmmNoFocus(list) {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i].rmmNoFocus) continue;
+                list[i].rmmNoFocus = true;
+                list[i].setAttribute('tabindex', '-1');
+                list[i].addEventListener('mousedown', function (e) { e.preventDefault(); });
+            }
+        }
+
+        function rmmStopTimers() {
+            if (rmmTickTimer != null) { clearInterval(rmmTickTimer); rmmTickTimer = null; }
+            if (rmmProbeTimer != null) { clearInterval(rmmProbeTimer); rmmProbeTimer = null; }
+            if (rmmResizeTimer != null) { clearTimeout(rmmResizeTimer); rmmResizeTimer = null; }
+            if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
+        }
+
+        //
+        // Quality: profile, image type, scaling
+        //
+
+        function rmmQualityCap(q) { return ((features2 & 1) == 0) ? Math.min(q, 60) : q; } // allowHighQualityDesktop
+        function rmmCurrentProfile() {
+            var p = (rmmPrefs.quality == 'auto') ? RMM_LADDER[rmmAutoStep] : RMM_PROFILES[rmmPrefs.quality];
+            return { q: rmmQualityCap(p.q), fr: p.fr, f: p.f };
+        }
+        // 4 = WebP when this browser decodes it, 1 = JPEG otherwise. If the agent cannot make WebP it
+        // answers with JPEG tiles, which are drawn as they are (the tile type is read from the bytes).
+        function rmmEncoding() {
+            if ((rmmPrefs.encoding == 'jpeg') || (rmmWebpBrowser !== true) || (rmmWebpBroken >= 3)) return 1;
+            return 4;
+        }
+        // Scaling (128 = 12.5 % ... 1024 = 100 %) so the agent sends about as many pixels as the window shows.
+        function rmmTargetScaling(f) {
+            if (!rmmPrefs.fit) return 1024;
+            if (rmmScalingIgnored) return rmmAgentScaling;
+            var nat = rmmNative || rmmNode.native;
+            if ((nat == null) || !nat.w || !nat.h) return null;
+            var area = Q('deskarea3x'), cw = area ? area.clientWidth : 0, ch = area ? area.clientHeight : 0;
+            if (!cw || !ch) return null;
+            rmmLastDpr = window.devicePixelRatio || 1;
+            var dpr = Math.min(Math.max(rmmLastDpr, 1), 2);
+            var ratio = Math.min((cw * dpr) / nat.w, (ch * dpr) / nat.h) * f;
+            var s = Math.ceil((ratio * 8) - 0.05) * 128; // next 12.5 % step up, so text is never smaller than the window
+            return Math.max(256, Math.min(1024, s));
+        }
+
+        function rmmApplyProfile(reason, force) {
+            if ((desktop == null) || (desktop.contype != 1) || (desktop.m == null)) { rmmUpdateUi(); return; }
+            var m = desktop.m, prof = rmmCurrentProfile(), type = rmmEncoding();
+            var scaling = rmmTargetScaling(prof.f);
+            if (scaling == null) { scaling = m.ScalingLevel || 1024; }
+            if ((desktop.State != 3) || (rmmLastSent == null)) {
+                // Not connected yet, or the agent has not sent its screen size: MeshCentral sends these
+                // values itself when the screen size arrives (ProcessScreenMsg).
+                m.ImageType = type; m.CompressionLevel = prof.q; m.FrameRateTimer = prof.fr; m.ScalingLevel = scaling;
+                rmmUpdateUi();
+                return;
+            }
+            if (rmmPendingScaling != null) return; // applied again when the agent's new screen size arrives
+            var last = rmmLastSent;
+            if (!force && last && (last.type == type) && (last.q == prof.q) && (last.scaling == scaling) && (last.fr == prof.fr)) { rmmUpdateUi(); return; }
+            rmmLastReason = reason || '';
+            m.SendCompressionLevel(type, prof.q, scaling, prof.fr);
+            if ((reason == 'webp-error') && m.SendRefresh) { m.SendRefresh(); }
+            rmmUpdateUi();
+        }
+
+        function rmmOnDesktopCreated(d) {
+            var m = d.m;
+            rmmAgentScaling = 1024; rmmPendingScaling = null; rmmPendingFrom = null; rmmScalingIgnored = false;
+            rmmLastSent = null; rmmAgentFormat = null; rmmNative = null; rmmDisplayRestored = false;
+            if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
+            var prof = rmmCurrentProfile(), scaling = rmmTargetScaling(prof.f);
+            m.ImageType = rmmEncoding();
+            m.CompressionLevel = prof.q;
+            m.FrameRateTimer = prof.fr;
+            m.ScalingLevel = (scaling == null) ? 1024 : scaling;
+            // Picture tiles: drawn from a Blob URL with the real image type, and a tile that cannot be
+            // decoded is skipped instead of holding back every later tile.
+            m.ProcessPictureMsg = function (data, X, Y) { rmmProcessPicture(m, data, X, Y); };
+            var origScreen = m.ProcessScreenMsg;
+            m.ProcessScreenMsg = function (w, h) { rmmOnScreenSize(m, w, h); var r = origScreen.call(m, w, h); setTimeout(function () { rmmApplyProfile('screen'); }, 0); return r; };
+            var origSend = m.SendCompressionLevel;
+            m.SendCompressionLevel = function (type, level, scaling, frametimer) { origSend.call(m, type, level, scaling, frametimer); rmmNoteSent(m); };
+            var origStop = m.Stop;
+            m.Stop = function () { rmmTakeSnapshot(m); origStop.call(m); rmmRestoreSnapshot(m); };
+            rmmShowReconnect(rmmHadPicture ? 'retry' : 'connecting');
+        }
+
+        function rmmNoteSent(m) {
+            var s = { type: m.ImageType, q: m.CompressionLevel, scaling: m.ScalingLevel, fr: m.FrameRateTimer };
+            var current = (rmmPendingScaling != null) ? rmmPendingScaling : rmmAgentScaling;
+            if (s.scaling != current) {
+                rmmPendingScaling = s.scaling;
+                rmmPendingFrom = { w: m.ScreenWidth, h: m.ScreenHeight, s: current };
+                if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); }
+                rmmPendingTimer = setTimeout(function () {
+                    rmmPendingTimer = null;
+                    if (rmmPendingScaling == null) return;
+                    // No new screen size within 4 s: this agent does not scale. Stop asking.
+                    rmmPendingScaling = null; rmmScalingIgnored = true;
+                    rmmApplyProfile('scaling-timeout');
+                }, 4000);
+            }
+            rmmLastSent = s;
+        }
+
+        function rmmOnScreenSize(m, w, h) {
+            if (rmmPendingScaling != null) {
+                var from = rmmPendingFrom;
+                var expectedW = from ? Math.round(from.w * rmmPendingScaling / from.s) : w;
+                if (from && (from.w == w) && (from.h == h) && (Math.abs(expectedW - w) > 2)) { rmmScalingIgnored = true; } else { rmmAgentScaling = rmmPendingScaling; }
+                rmmPendingScaling = null; rmmPendingFrom = null;
+                if (rmmPendingTimer != null) { clearTimeout(rmmPendingTimer); rmmPendingTimer = null; }
+            }
+            if ((w > 0) && (h > 0)) {
+                rmmNative = { w: Math.round(w * 1024 / rmmAgentScaling), h: Math.round(h * 1024 / rmmAgentScaling) };
+                rmmNode.native = rmmNative; rmmSaveNode();
+            }
+        }
+
+        function rmmTileFormat(b) {
+            if ((b.length > 2) && (b[0] == 0xFF) && (b[1] == 0xD8)) return 'jpeg';
+            if ((b.length > 12) && (b[0] == 0x52) && (b[1] == 0x49) && (b[2] == 0x46) && (b[3] == 0x46) && (b[8] == 0x57) && (b[9] == 0x45) && (b[10] == 0x42) && (b[11] == 0x50)) return 'webp';
+            if ((b.length > 4) && (b[0] == 0x89) && (b[1] == 0x50) && (b[2] == 0x4E) && (b[3] == 0x47)) return 'png';
+            return 'other';
+        }
+
+        function rmmProcessPicture(m, data, X, Y) {
+            var tile = new Image(), r = ++m.tilesReceived;
+            var bytes = data.subarray ? data.subarray(4) : data.slice(4);
+            var fmt = rmmTileFormat(bytes), url = null;
+            if ((fmt == 'jpeg') || (fmt == 'webp')) { rmmAgentFormat = fmt; }
+            rmmNet.bytes += bytes.byteLength; rmmNet.tiles++; rmmNet.lastData = Date.now();
+            try { url = URL.createObjectURL(new Blob([bytes], { type: (fmt == 'webp') ? 'image/webp' : ((fmt == 'png') ? 'image/png' : 'image/jpeg') })); } catch (ex) { url = null; }
+            tile.onload = function () {
+                if (url) { URL.revokeObjectURL(url); }
+                if ((m.Canvas != null) && (m.KillDraw < r) && (m.State != 0)) { m.PendingOperations.push([r, 2, tile, X, Y]); } else { m.PendingOperations.push([r, 0]); }
+                while (m.DoPendingOperations()) { }
+                rmmOnPictureDrawn();
+            };
+            tile.onerror = function () {
+                if (url) { URL.revokeObjectURL(url); }
+                m.PendingOperations.push([r, 0]); // skip it, later tiles are still drawn
+                while (m.DoPendingOperations()) { }
+                if (fmt == 'webp') { rmmWebpBroken++; if (rmmWebpBroken == 3) { rmmApplyProfile('webp-error', true); } }
+            };
+            if (url) { tile.src = url; return; }
+            var strs = [], ptr = 0;
+            while ((bytes.byteLength - ptr) > 50000) { strs.push(String.fromCharCode.apply(null, bytes.subarray(ptr, ptr + 50000))); ptr += 50000; }
+            strs.push(String.fromCharCode.apply(null, bytes.subarray(ptr)));
+            tile.src = 'data:image/' + ((fmt == 'webp') ? 'webp' : 'jpeg') + ';base64,' + btoa(strs.join(''));
+        }
+
+        function rmmOnPictureDrawn() {
+            rmmHadPicture = true;
+            if (rmmStale || (rmmReconnectAttempt > 0) || Q('rmmReconnect').classList.contains('rmm-show')) {
+                rmmStale = false; rmmSnapshot = null; rmmReconnectAttempt = 0;
+                Q('Desk').classList.remove('rmm-stale');
+                rmmHideReconnect();
+            }
+        }
+
+        function rmmSetQuality(q) {
+            if (['auto', 'sharp', 'fast'].indexOf(q) < 0) return;
+            rmmPrefs.quality = q;
+            if (q == 'auto') { rmmAutoStep = RMM_AUTO_START; rmmNet.goodSince = 0; rmmNet.badTicks = rmmNet.shakyTicks = 0; }
+            rmmSavePrefs();
+            rmmApplyProfile('quality');
+            rmmUpdateUi();
+        }
+
+        function rmmSetFit(fit) {
+            rmmPrefs.fit = (fit === true);
+            deskAspectRatio = rmmPrefs.fit ? 0 : 1;
+            rmmSavePrefs();
+            deskAdjust();
+            rmmApplyProfile('fit');
+            rmmUpdateUi();
+        }
+
+        function rmmToggleFullscreen() {
+            if (isBrowserFullscreen()) { exitBrowserFullscreen(); } else { enterBrowserFullscreen(document.documentElement); }
+            setTimeout(rmmUpdateUi, 300);
+        }
+
+        function rmmOnWindowResize() {
+            if (rmmResizeTimer != null) { clearTimeout(rmmResizeTimer); }
+            rmmResizeTimer = setTimeout(function () { rmmResizeTimer = null; rmmApplyProfile('resize'); }, 350);
+        }
+
+        //
+        // Screens
+        //
+
+        function rmmRenderDisplays(displays, sel) {
+            var box = Q('rmmDisplays');
+            if (!box) return;
+            var keys = [];
+            for (var i in displays) { keys.push(parseInt(i)); }
+            if (keys.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            keys.sort(function (a, b) { return a - b; });
+            var zeroBased = (keys.indexOf(0) >= 0), x = '';
+            for (var k = 0; k < keys.length; k++) {
+                var n = keys[k], label = (n == 65535) ? 'Alla skärmar' : ('Skärm ' + (zeroBased ? (n + 1) : n));
+                x += '<button type="button" class="rmm-btn" data-display="' + n + '" aria-pressed="' + ((n == sel) ? 'true' : 'false') + '" onclick="rmmSelectDisplay(' + n + ')">' + label + '</button>';
+            }
+            box.innerHTML = x;
+            box.style.display = '';
+            rmmNoFocus(box.querySelectorAll('.rmm-btn'));
+            // The screen chosen last time for this computer.
+            if (!rmmDisplayRestored && (rmmNode.display != null) && (rmmNode.display != sel) && (keys.indexOf(rmmNode.display) >= 0) && desktop && (desktop.State == 3)) {
+                rmmDisplayRestored = true;
+                desktop.m.SetDisplay(rmmNode.display);
+                rmmMarkDisplay(rmmNode.display);
+            }
+            rmmDisplayRestored = true;
+        }
+
+        function rmmMarkDisplay(n) {
+            var b = document.querySelectorAll('#rmmDisplays .rmm-btn');
+            for (var i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', (parseInt(b[i].getAttribute('data-display')) == n) ? 'true' : 'false'); }
+        }
+
+        function rmmSelectDisplay(n) {
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) return;
+            desktop.m.SetDisplay(n);
+            rmmNode.display = n; rmmSaveNode();
+            rmmMarkDisplay(n);
+        }
+
+        //
+        // Quick keys and typing
+        //
+
+        function rmmQuickKey(k) {
+            if (xxdialogMode || (desktop == null) || (desktop.State != 3) || (viewOnly == 1)) return;
+            if ((k == 'esc') || (k == 'tab')) {
+                var kc = (k == 'esc') ? 27 : 9;
+                if (desktop.contype == 2) { var ks = (k == 'esc') ? 0xff1b : 0xff09; desktop.m.sendkey([[ks, 1], [ks, 0]]); }
+                else { desktop.m.SendKeyMsgKC([[desktop.m.KeyAction.DOWN, kc], [desktop.m.KeyAction.UP, kc]]); }
+                return;
+            }
+            Q('deskkeys').value = k;
+            deskSendKeys();
+        }
+
+        function rmmTypeText(txt) {
+            var m = desktop.m, A = m.KeyAction, s = String(txt).replace(/\r\n?/g, '\n');
+            for (var i = 0; i < s.length; i++) {
+                var c = s.charCodeAt(i);
+                if (c == 10) { m.SendKeyMsgKC(A.DOWN, 13); m.SendKeyMsgKC(A.UP, 13); }
+                else if (c == 9) { m.SendKeyMsgKC(A.DOWN, 9); m.SendKeyMsgKC(A.UP, 9); }
+                else { m.SendKeyUnicode(A.DOWN, c); m.SendKeyUnicode(A.UP, c); }
+            }
+        }
+
+        //
+        // Mac -> Windows keyboard
+        //   Option + key that gives @ £ $ € { [ ] } \ | ~ µ  -> that character
+        //   Option + other key                               -> Alt + key (Option+Tab = Alt+Tab, Option+F4 = Alt+F4)
+        //   Option alone                                     -> nothing
+        //   Cmd + key                                        -> Ctrl + key (Cmd+C/V/X/A/Z/S ...)
+        //   Cmd alone                                        -> nothing (no Start menu by accident)
+        //   the < > key with Ctrl or without a character      -> key code 226
+        //
+
+        function rmmKeyActive() { return rmmMacKeysOn() && (desktop != null) && (desktop.contype == 1) && (desktop.State == 3) && !desktop.m.stopInput; }
+        function rmmVk(code) {
+            if (typeof code != 'string') return null;
+            if ((code.length == 4) && (code.indexOf('Key') == 0)) return code.charCodeAt(3);
+            if ((code.length == 6) && (code.indexOf('Digit') == 0)) return code.charCodeAt(5);
+            if ((code.length == 7) && (code.indexOf('Numpad') == 0)) return code.charCodeAt(6) + 48;
+            return RMM_KEYCODES.hasOwnProperty(code) ? RMM_KEYCODES[code] : null;
+        }
+        function rmmSendVk(action, code, kc) { desktop.m.SendKeyMsgKC(action, kc, RMM_EXTENDED.indexOf(code) >= 0); }
+        function rmmIsModifier(code) { return (code.indexOf('Shift') == 0) || (code.indexOf('Control') == 0); }
+
+        function rmmKeyDown(e) {
+            if (!rmmKeyActive()) return false;
+            var code = e.code || '', A = desktop.m.KeyAction, st = rmmKeyState, kc;
+            st.swallowPress = false;
+            if ((code == 'MetaLeft') || (code == 'MetaRight')) { st.cmd = true; return true; }
+            if ((code == 'AltLeft') || (code == 'AltRight')) { st.alt = true; return true; }
+            if (e.metaKey || st.cmd) {
+                if (rmmIsModifier(code)) return false;
+                kc = rmmVk(code);
+                if (kc == null) return true;
+                if (!st.ctrlSent) { desktop.m.SendKeyMsgKC(A.DOWN, 17); st.ctrlSent = true; }
+                if ((e.altKey || st.alt) && !st.altSent) { desktop.m.SendKeyMsgKC(A.DOWN, 18); st.altSent = true; }
+                // macOS sends no keyup for a key pressed while Cmd is held, so press and release now.
+                rmmSendVk(A.DOWN, code, kc); rmmSendVk(A.UP, code, kc);
+                st.swallowPress = true;
+                return true;
+            }
+            if (e.altKey || st.alt) {
+                if (!e.ctrlKey && (typeof e.key == 'string') && (e.key.length == 1) && (RMM_ALTGR_CHARS.indexOf(e.key) >= 0)) {
+                    desktop.m.SendKeyUnicode(A.DOWN, e.key.charCodeAt(0)); desktop.m.SendKeyUnicode(A.UP, e.key.charCodeAt(0));
+                    st.handled[code] = 0; st.swallowPress = true;
+                    return true;
+                }
+                if (e.key == 'Dead') { st.handled[code] = 0; return true; } // the next key types the accent or ~
+                if (rmmIsModifier(code)) return false;
+                kc = rmmVk(code);
+                if (kc == null) return true;
+                if (!st.altSent) { desktop.m.SendKeyMsgKC(A.DOWN, 18); st.altSent = true; }
+                rmmSendVk(A.DOWN, code, kc);
+                st.handled[code] = kc; st.swallowPress = true;
+                return true;
+            }
+            if ((code == 'IntlBackslash') && (e.ctrlKey || !((typeof e.key == 'string') && (e.key.length == 1)))) {
+                rmmSendVk(A.DOWN, code, 226); st.handled[code] = 226;
+                return true;
+            }
+            return false;
+        }
+
+        function rmmKeyUp(e) {
+            if (!rmmKeyActive()) return false;
+            var code = e.code || '', A = desktop.m.KeyAction, st = rmmKeyState;
+            if ((code == 'MetaLeft') || (code == 'MetaRight')) {
+                st.cmd = false;
+                if (st.ctrlSent) { desktop.m.SendKeyMsgKC(A.UP, 17); st.ctrlSent = false; }
+                if (st.altSent && !st.alt) { desktop.m.SendKeyMsgKC(A.UP, 18); st.altSent = false; }
+                return true;
+            }
+            if ((code == 'AltLeft') || (code == 'AltRight')) {
+                st.alt = false;
+                if (st.altSent && !st.ctrlSent) { desktop.m.SendKeyMsgKC(A.UP, 18); st.altSent = false; }
+                return true;
+            }
+            if (st.handled.hasOwnProperty(code)) { var kc = st.handled[code]; delete st.handled[code]; if (kc) { rmmSendVk(A.UP, code, kc); } return true; }
+            if ((e.metaKey || st.cmd) && !rmmIsModifier(code)) return true; // already pressed and released
+            return false;
+        }
+
+        function rmmKeyPress(e) {
+            if (!rmmKeyActive()) return false;
+            if (rmmKeyState.swallowPress) { rmmKeyState.swallowPress = false; return true; }
+            if (e.metaKey || rmmKeyState.cmd) return true;
+            return false;
+        }
+
+        // The window lost focus: release what is held on the remote computer, so no key gets stuck.
+        function rmmReleaseModifiers() {
+            var st = rmmKeyState;
+            if ((desktop != null) && (desktop.State == 3) && (desktop.contype == 1) && desktop.m) {
+                var A = desktop.m.KeyAction;
+                if (st.ctrlSent) { desktop.m.SendKeyMsgKC(A.UP, 17); }
+                if (st.altSent) { desktop.m.SendKeyMsgKC(A.UP, 18); }
+                for (var c in st.handled) { if (st.handled[c]) { rmmSendVk(A.UP, c, st.handled[c]); } }
+                if (desktop.m.handleReleaseKeys) { desktop.m.handleReleaseKeys(); }
+            }
+            rmmKeyState = { cmd: false, ctrlSent: false, alt: false, altSent: false, handled: {}, swallowPress: false };
+        }
+
+        function rmmToggleMacKeys() {
+            rmmReleaseModifiers();
+            rmmPrefs.macKeys = !rmmMacKeysOn();
+            rmmSavePrefs();
+            rmmUpdateUi();
+        }
+
+        function rmmFillSettings() {
+            if (Q('d7rmmMacKeys')) { Q('d7rmmMacKeys').checked = rmmMacKeysOn(); }
+            if (Q('d7rmmEncoding')) { Q('d7rmmEncoding').value = rmmPrefs.encoding; }
+            QH('d7rmmInfo', EscapeHtml(rmmInfoText()));
+        }
+
+        function rmmReadSettings() {
+            if (Q('d7rmmMacKeys') && (Q('d7rmmMacKeys').checked != rmmMacKeysOn())) { rmmReleaseModifiers(); rmmPrefs.macKeys = Q('d7rmmMacKeys').checked; }
+            if (Q('d7rmmEncoding')) { rmmPrefs.encoding = (Q('d7rmmEncoding').value == 'jpeg') ? 'jpeg' : 'auto'; }
+            rmmSavePrefs();
+            rmmUpdateUi();
+        }
+
+        //
+        // Connection: indicator, Auto, dead link, reconnect
+        //
+
+        function rmmOnDesktopUp() {
+            var now = Date.now();
+            rmmNet.connectedAt = now; rmmNet.lastReply = 0; rmmNet.lastProbe = 0; rmmNet.lastData = now; rmmNet.rtts = [];
+            rmmNet.rateAt = now; rmmNet.bytes = 0; rmmNet.tiles = 0; rmmNet.goodSince = 0; rmmNet.badTicks = rmmNet.shakyTicks = 0;
+            rmmNet.state = 'measuring';
+            if (rmmProbeTimer != null) { clearInterval(rmmProbeTimer); }
+            rmmProbeTimer = setInterval(rmmProbe, RMM_PROBE_MS);
+            if (rmmTickTimer == null) { rmmTickTimer = setInterval(rmmTick, 1000); }
+            setTimeout(rmmProbe, 300);
+            if (Q('rmmReconnect').classList.contains('rmm-show')) { rmmShowReconnect('waiting'); }
+            rmmApplyProfile('connected');
+            rmmUpdateNet();
+        }
+
+        function rmmOnDesktopDown() {
+            if (rmmProbeTimer != null) { clearInterval(rmmProbeTimer); rmmProbeTimer = null; }
+            rmmKeyState = { cmd: false, ctrlSent: false, alt: false, altSent: false, handled: {}, swallowPress: false };
+            deskPreferedStickyDisplay = -1; // the remembered screen is restored by rmmRenderDisplays
+            rmmNet.state = 'off'; rmmNet.rtts = []; rmmNet.eff = null;
+            QV('rmmDisplays', false); // shown again when the agent lists its screens
+            rmmUpdateNet();
+            if (shareIsExpired()) { rmmShowReconnect('expired'); return; }
+            if (!rmmDesktopReconnectEnabled) { rmmShowReconnect('ended'); return; }
+            // scheduleDesktopReconnect() shows "Ansluter igen…"
+        }
+
+        function rmmOnShareExpired() {
+            rmmDesktopReconnectEnabled = false;
+            if (rmmDesktopReconnectTimer != null) { clearTimeout(rmmDesktopReconnectTimer); rmmDesktopReconnectTimer = null; }
+            if (desktop != null) { try { desktop.Stop(); } catch (ex) { } }
+            rmmShowReconnect('expired');
+        }
+
+        function rmmManualReconnect() {
+            if (shareIsExpired() || (desktop != null)) return;
+            rmmDesktopReconnectEnabled = true;
+            rmmReconnectAttempt = 0;
+            connectDesktop(null, 1);
+        }
+
+        function rmmShowReconnect(kind, delay) {
+            var o = Q('rmmReconnect');
+            if (!o) return;
+            o.classList.add('rmm-show');
+            o.classList.toggle('rmm-ended', (kind == 'ended') || (kind == 'expired'));
+            o.classList.toggle('rmm-can-retry', kind == 'ended');
+            if (kind == 'retry') {
+                QH('rmmReconnectTitle', rmmHadPicture ? 'Ansluter igen…' : 'Ansluter…');
+                QH('rmmReconnectText', (rmmReconnectAttempt > 1) ? format('Försök {0}. Nästa om {1} s.', rmmReconnectAttempt, Math.max(1, Math.round((delay || 0) / 1000))) : 'Bilden kommer tillbaka av sig själv.');
+                QH('deskstatus', 'Ansluter igen');
+            } else if (kind == 'connecting') {
+                QH('rmmReconnectTitle', rmmHadPicture ? 'Ansluter igen…' : 'Ansluter…');
+                QH('rmmReconnectText', '');
+            } else if (kind == 'waiting') {
+                QH('rmmReconnectTitle', 'Ansluten');
+                QH('rmmReconnectText', 'Väntar på bilden…');
+            } else if (kind == 'ended') {
+                QH('rmmReconnectTitle', 'Sessionen är avslutad');
+                QH('deskstatus', 'Avslutad');
+                QH('rmmReconnectText', 'Inget skickas till datorn nu.');
+            } else if (kind == 'expired') {
+                QH('rmmReconnectTitle', 'Tiden för fjärrstyrningen är slut');
+                QH('deskstatus', 'Slut');
+                QH('rmmReconnectText', 'Starta en ny fjärrsession i Control.');
+            }
+        }
+
+        function rmmHideReconnect() { var o = Q('rmmReconnect'); if (o) { o.classList.remove('rmm-show'); o.classList.remove('rmm-ended'); o.classList.remove('rmm-can-retry'); } }
+
+        function rmmTakeSnapshot(m) {
+            rmmSnapshot = null;
+            try {
+                var c = m.CanvasId;
+                if (!rmmHadPicture || !c || !c.width || !c.height) return;
+                var s = document.createElement('canvas');
+                s.width = c.width; s.height = c.height;
+                s.getContext('2d').drawImage(c, 0, 0);
+                rmmSnapshot = s;
+            } catch (ex) { rmmSnapshot = null; }
+        }
+
+        // Keep the last picture (greyed) under "Ansluter igen…" instead of a black screen.
+        function rmmRestoreSnapshot(m) {
+            if (rmmSnapshot == null) return;
+            try {
+                var c = m.CanvasId;
+                if ((c.width == rmmSnapshot.width) && (c.height == rmmSnapshot.height)) {
+                    var ctx = c.getContext('2d');
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.drawImage(rmmSnapshot, 0, 0);
+                }
+            } catch (ex) { }
+            rmmStale = true;
+            Q('Desk').classList.add('rmm-stale');
+        }
+
+        function rmmProbe() {
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) return;
+            var now = Date.now();
+            if (rmmNet.lastProbe > rmmNet.lastReply) return; // one probe at a time; its age is the measurement (TCP does not lose the answer)
+            rmmNet.lastProbe = now;
+            try { desktop.sendCtrlMsg(JSON.stringify({ ctrlChannel: 102938, type: 'rtt', time: now })); } catch (ex) { }
+        }
+
+        function rmmOnRtt(ms) {
+            var now = Date.now();
+            rmmNet.lastReply = now;
+            if ((typeof ms == 'number') && (ms >= 0)) {
+                rmmNet.rtts.push({ ms: ms, t: now });
+                while (rmmNet.rtts.length > 30) { rmmNet.rtts.shift(); }
+            }
+        }
+
+        function rmmRecentRtt(now) {
+            var v = [];
+            for (var i = 0; i < rmmNet.rtts.length; i++) { if ((now - rmmNet.rtts[i].t) < 7000) { v.push(rmmNet.rtts[i].ms); } }
+            if (v.length == 0) return null;
+            v.sort(function (a, b) { return a - b; });
+            return v[Math.floor(v.length / 2)];
+        }
+
+        // The line's own normal delay: the lowest answer in the last 30 s.
+        function rmmBaseRtt(now) {
+            var b = null;
+            for (var i = 0; i < rmmNet.rtts.length; i++) { if (((now - rmmNet.rtts[i].t) < 30000) && ((b == null) || (rmmNet.rtts[i].ms < b))) { b = rmmNet.rtts[i].ms; } }
+            return b;
+        }
+
+        // Runs every second while connected. See docs/fjarrstyrning.md for the rules.
+        function rmmTick() {
+            var now = Date.now();
+            if ((desktop == null) || (desktop.State != 3) || (desktop.contype != 1)) {
+                rmmNet.state = (desktop == null) ? 'off' : 'connecting';
+                rmmUpdateNet();
+                if (desktop == null) { clearInterval(rmmTickTimer); rmmTickTimer = null; }
+                return;
+            }
+            if ((now - rmmNet.rateAt) >= 2000) {
+                var dt = (now - rmmNet.rateAt) / 1000;
+                rmmNet.rateBytes = rmmNet.bytes / dt; rmmNet.rateTiles = rmmNet.tiles / dt;
+                rmmNet.bytes = 0; rmmNet.tiles = 0; rmmNet.rateAt = now;
+            }
+            if ((window.devicePixelRatio || 1) != rmmLastDpr) { rmmLastDpr = (window.devicePixelRatio || 1); rmmOnWindowResize(); } // not every browser fires an event for this
+            var m = desktop.m;
+            rmmNet.decodeQueue = Math.max(0, (m.tilesReceived || 0) - (m.TilesDrawn || 0));
+            var outstanding = (rmmNet.lastProbe > rmmNet.lastReply) ? (now - rmmNet.lastProbe) : 0;
+            var rtt = rmmRecentRtt(now), base = rmmBaseRtt(now);
+            var eff = Math.max((rtt == null) ? 0 : rtt, outstanding);
+            rmmNet.eff = ((rtt == null) && (outstanding == 0)) ? null : eff;
+            rmmNet.base = base;
+
+            // Dead link: the probe is unanswered and nothing at all has arrived for 12 s.
+            if ((outstanding > RMM_DEAD_MS) && ((now - rmmNet.lastData) > RMM_DEAD_MS)) { rmmForceReconnect(); return; }
+
+            var state;
+            if (rmmNet.eff == null) { state = ((now - rmmNet.connectedAt) < 4000) ? 'measuring' : 'good'; }
+            else if ((eff > 400) || (rmmNet.decodeQueue > 40)) { state = 'bad'; }
+            else if ((eff > 150) || (rmmNet.decodeQueue > 12)) { state = 'shaky'; }
+            else { state = 'good'; }
+            rmmNet.state = state;
+
+            if (rmmPrefs.quality == 'auto') { rmmAutoAdjust(now, eff, base, outstanding); }
+            rmmUpdateNet();
+        }
+
+        // Auto: step down when the delay grows above the line's own normal delay (a queue is building)
+        // or the browser falls behind drawing; step up after 10 s of good values.
+        function rmmAutoAdjust(now, eff, base, outstanding) {
+            if (rmmNet.eff == null) return;
+            var queue = Math.max(0, eff - ((base == null) ? 0 : base));
+            var bad = (queue > 300) || (outstanding > 2000) || (rmmNet.decodeQueue > 40);
+            var shaky = bad || (queue > 120) || (rmmNet.decodeQueue > 12);
+            var good = !shaky && (queue < 60) && (rmmNet.decodeQueue <= 4);
+            if (bad) { rmmNet.badTicks++; } else { rmmNet.badTicks = 0; }
+            if (shaky) { rmmNet.shakyTicks++; } else { rmmNet.shakyTicks = 0; }
+            if (good) { if (!rmmNet.goodSince) { rmmNet.goodSince = now; } } else { rmmNet.goodSince = 0; }
+            if ((rmmAutoStep < RMM_LADDER.length - 1) && ((now - rmmNet.lastDown) > 4000) && ((rmmNet.badTicks >= 2) || (rmmNet.shakyTicks >= 4))) {
+                rmmAutoStep++;
+                rmmNet.lastDown = now; rmmNet.badTicks = 0; rmmNet.shakyTicks = 0; rmmNet.goodSince = 0;
+                rmmApplyProfile('auto-down');
+                return;
+            }
+            if ((rmmAutoStep > 0) && rmmNet.goodSince && ((now - rmmNet.goodSince) >= 10000) && ((now - rmmNet.lastDown) >= 15000)) {
+                rmmAutoStep--;
+                rmmNet.goodSince = now;
+                rmmApplyProfile('auto-up');
+            }
+        }
+
+        function rmmForceReconnect() {
+            if (desktop == null) return;
+            rmmNet.lastProbe = 0; rmmNet.lastReply = 0;
+            try { desktop.Stop(); } catch (ex) { } // state 0 -> onDesktopStateChange -> reconnect with back-off
+        }
+
+        function rmmInfoText() {
+            var s = rmmLastSent;
+            if (s == null) return 'Ingen bild än.';
+            var fmt = (rmmAgentFormat == 'webp') ? 'WebP' : ((rmmAgentFormat == 'jpeg') ? 'JPEG' : ((s.type == 4) ? 'WebP' : 'JPEG'));
+            if ((s.type == 4) && (rmmAgentFormat == 'jpeg')) { fmt = 'JPEG (datorn skickar inte WebP)'; }
+            var x = fmt + ', kvalitet ' + s.q + ', högst ' + Math.round(1000 / s.fr) + ' bilder/s, skala ' + Math.round(s.scaling / 10.24) + ' %';
+            x += ', ' + Math.round(rmmNet.rateBytes / 1024) + ' kB/s';
+            if (rmmPrefs.quality == 'auto') { x += ', Auto steg ' + (rmmAutoStep + 1) + ' av ' + RMM_LADDER.length; }
+            return x;
+        }
+
+        function rmmUpdateNet() {
+            var el = Q('rmmNet');
+            if (!el) return;
+            var cls = 'rmm-net', text = 'Ingen kontakt', ms = '';
+            switch (rmmNet.state) {
+                case 'good': cls += ' rmm-net-good'; text = 'Bra'; break;
+                case 'shaky': cls += ' rmm-net-shaky'; text = 'Svajig'; break;
+                case 'bad': cls += ' rmm-net-bad'; text = 'Dålig'; break;
+                case 'measuring': text = 'Mäter…'; break;
+                case 'connecting': text = 'Ansluter'; break;
+            }
+            if ((rmmNet.eff != null) && ((rmmNet.state == 'good') || (rmmNet.state == 'shaky') || (rmmNet.state == 'bad'))) { ms = Math.round(rmmNet.eff) + ' ms'; }
+            if (el.className != cls) { el.className = cls; }
+            if (Q('rmmNetText').textContent != text) { Q('rmmNetText').textContent = text; }
+            if (Q('rmmNetMs').textContent != ms) { Q('rmmNetMs').textContent = ms; }
+            el.setAttribute('data-state', rmmNet.state);
+            el.title = 'Anslutningen: ' + text + (ms ? (', ' + ms) : '') + '. ' + rmmInfoText();
+        }
+
+        function rmmUpdateUi() {
+            var i, b = document.querySelectorAll('#rmmQuality .rmm-btn');
+            for (i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', (b[i].getAttribute('data-q') == rmmPrefs.quality) ? 'true' : 'false'); }
+            b = document.querySelectorAll('#rmmFit .rmm-btn');
+            for (i = 0; i < b.length; i++) { b[i].setAttribute('aria-pressed', ((b[i].getAttribute('data-fit') == '1') == rmmPrefs.fit) ? 'true' : 'false'); }
+            if (Q('rmmMacButton')) { Q('rmmMacButton').setAttribute('aria-pressed', rmmMacKeysOn() ? 'true' : 'false'); }
+            if (Q('rmmFullButton')) { var fs = isBrowserFullscreen() ? 'Lämna helskärm' : 'Helskärm'; Q('rmmFullButton').title = fs; Q('rmmFullButton').setAttribute('aria-label', fs); }
+            if (Q('deskstatus') && (expire != '')) { Q('deskstatus').title = printFlexDateTime(new Date(parseInt(expire))); }
+            if (Q('d7rmmInfo') && xxdialogMode == 7) { QH('d7rmmInfo', EscapeHtml(rmmInfoText())); }
+        }
+
 
         start();
     </script>

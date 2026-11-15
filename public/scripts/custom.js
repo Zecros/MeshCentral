@@ -25,17 +25,17 @@
             leftTools.insertBefore(badge, leftTools.firstChild);
         }
 
-        setValue('deskActionsSettings', 'Remote settings');
-        setValue('disconnectbutton1', 'End session');
-        setValue('disconnectbutton2', 'End session');
+        setValue('deskActionsSettings', 'Inställningar');
+        setValue('disconnectbutton1', 'Avsluta');
+        setValue('disconnectbutton2', 'Avsluta');
         setText('deskstatus', normalizeStatus(byId('deskstatus') && byId('deskstatus').textContent));
         setText('termstatus', normalizeStatus(byId('termstatus') && byId('termstatus').textContent));
         setText('p13Status', normalizeStatus(byId('p13Status') && byId('p13Status').textContent));
 
         var power = byId('p11power');
         if (power && power.textContent) {
-            power.textContent = power.textContent.replace(/^Går ut kl\.\s*/i, 'Session until ');
-            power.textContent = power.textContent.replace(/^Expires at\s*/i, 'Session until ');
+            power.textContent = power.textContent.replace(/^Går ut kl\.\s*/i, 'Slutar ');
+            power.textContent = power.textContent.replace(/^(Expires at|Session until)\s*/i, 'Slutar ');
         }
     }
 
@@ -51,10 +51,11 @@
 
     function normalizeStatus(value) {
         value = (value || '').trim();
-        if (/^(Frånkopplad|Disconnected)$/i.test(value)) return 'Waiting';
-        if (/^(Ansluter|Ansluter\.\.\.|Connecting|Connecting\.\.\.)$/i.test(value)) return 'Connecting';
-        if (/^(Uppstart|Uppstart\.\.\.|Setup|Setup\.\.\.)$/i.test(value)) return 'Preparing';
-        if (/^(Ansluten|Connected)$/i.test(value)) return 'Connected';
+        // Swedish everywhere on the support page (Nordbase step 1).
+        if (/^(Frånkopplad|Disconnected|Waiting)$/i.test(value)) return 'Väntar';
+        if (/^(Ansluter\.\.\.|Connecting|Connecting\.\.\.)$/i.test(value)) return 'Ansluter';
+        if (/^(Uppstart|Uppstart\.\.\.|Setup|Setup\.\.\.|Preparing)$/i.test(value)) return 'Förbereder';
+        if (/^(Connected)$/i.test(value)) return 'Ansluten';
         return value;
     }
 
@@ -70,7 +71,7 @@
             var status = (candidate.status && candidate.status.textContent || '').trim();
             if ((enabledFeatures & candidate.feature) === 0) continue;
             if (!candidate.button || candidate.button.disabled) continue;
-            if (/^(Waiting|Frånkopplad|Disconnected)$/i.test(status)) {
+            if (/^(Waiting|Väntar|Frånkopplad|Disconnected)$/i.test(status)) {
                 candidate.button.click();
                 return;
             }
@@ -81,7 +82,7 @@
         var title = byId('id_dialogtitle');
         if (!title || !title.textContent) return;
         if (/Remote Desktop Settings|Inställningar för fjärrskrivbord/i.test(title.textContent)) {
-            title.textContent = 'Nordbase Remote settings';
+            title.textContent = 'Inställningar';
         }
         var heading = document.querySelector('#dialog7 h4');
         if (heading) heading.textContent = 'Nordbase Remote';
