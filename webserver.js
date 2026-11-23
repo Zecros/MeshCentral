@@ -6669,6 +6669,18 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
             meshcompanyname = meshcompanyname.split('meshagent').join(domain.agentcustomization.companyname);
         }
 
+        // Nordbase: the launcher (NordbaseAgent) returns 128 + signal when NordbaseAgentCore crashes, which launchd
+        // counts as a normal exit, so KeepAlive { Crashed } alone never restarted it (Arvid's Mac, November 2026).
+        // SuccessfulExit = false also restarts on every exit with an error code. A clean stop (exit 0) stays stopped.
+        function nordbaseLaunchDaemonKeepAlive(plist) {
+            var keepAlive = '<key>KeepAlive</key>\n    <dict>\n      <key>Crashed</key>\n      <true/>\n      <key>SuccessfulExit</key>\n      <false/>\n    </dict>';
+            var pattern = /<key>KeepAlive<\/key>\s*(<dict>[\s\S]*?<\/dict>|<true\/>|<false\/>)/;
+            if (pattern.test(plist)) { return plist.replace(pattern, keepAlive); }
+            var end = plist.lastIndexOf('</dict>');
+            if (end < 0) { return plist; }
+            return plist.slice(0, end) + '    ' + keepAlive + '\n\t' + plist.slice(end);
+        }
+
         function makeMacAgentAppPath() {
             return '/Applications/' + meshdisplayname + '.app/Contents/MacOS';
         }
@@ -6809,6 +6821,7 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
                                             var installPath = '/usr/local/mesh_services/' + meshcompanyname + '/' + meshservicename;
                                             entryData = entryData.split('<string>' + installPath + '/' + meshexecutablename + '</string>').join('<string>' + makeMacAgentAppPath() + '/' + meshexecutablename + '</string>');
                                         }
+                                        if (entry.fileName.endsWith('LaunchDaemon.plist')) { entryData = nordbaseLaunchDaemonKeepAlive(entryData); }
                                     }
                                     archive.append(entryData, options);
                                     zipfile.readEntry();
