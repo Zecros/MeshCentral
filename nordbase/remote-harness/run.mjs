@@ -138,6 +138,49 @@ try {
     await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
     await waitComp((x) => x.scaling === 384, 4000, 'back');
 
+    // ---------------------------------------------------------------- step 5: the picture in its frame, clicks exact
+    await page.eval("(function(){ window.__mouse = []; var m = desktop.m; if (m.__rr5) return true; m.__rr5 = true; var s = m.send; m.send = function (x) { if ((typeof x == 'string') && (x.length >= 10) && (x.charCodeAt(1) == 2)) { window.__mouse.push({ x: x.charCodeAt(6) * 256 + x.charCodeAt(7), y: x.charCodeAt(8) * 256 + x.charCodeAt(9) }); } return s.apply(m, arguments); }; return true; })()");
+    const frame = () => page.eval("(function(){ var c = document.getElementById('Desk'), r = c.getBoundingClientRect(), a = document.getElementById('deskarea3x').getBoundingClientRect(); return { l: r.left - a.left, r: a.right - r.right, t: r.top - a.top, b: a.bottom - r.bottom, w: r.width, h: r.height, iw: c.width, ih: c.height, crisp: c.classList.contains('rmm-crisp'), focus: getComputedStyle(document.getElementById('DeskFocus')).display, theme: document.documentElement.getAttribute('data-rmm-theme') }; })()");
+    const mouseErr = async (scroll) => {
+        if (scroll) await page.eval("(function(){ var p = document.getElementById('DeskParent'); p.scrollLeft = " + scroll[0] + "; p.scrollTop = " + scroll[1] + "; return true; })()");
+        const g = await page.eval("(function(){ var c = document.getElementById('Desk'), r = c.getBoundingClientRect(), a = document.getElementById('deskarea3x').getBoundingClientRect(); var L = Math.max(r.left, a.left), T = Math.max(r.top, a.top), R = Math.min(r.right, a.right), B = Math.min(r.bottom, a.bottom); return { r: { l: r.left, t: r.top, w: r.width, h: r.height }, iw: c.width, ih: c.height, pts: [[L + 3, T + 3], [(L + R) / 2, (T + B) / 2], [R - 4, B - 4]] }; })()");
+        let worst = 0; const seen = [];
+        for (const [x, y] of g.pts) {
+            await page.eval('window.__mouse.length = 0; true');
+            await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, button: 'none' });
+            await sleep(60);
+            const m = await page.eval('window.__mouse[window.__mouse.length - 1] || null');
+            const ex = [(x - g.r.l) * g.iw / g.r.w, (y - g.r.t) * g.ih / g.r.h];
+            const e = m ? Math.max(Math.abs(m.x - ex[0]), Math.abs(m.y - ex[1])) : 99;
+            worst = Math.max(worst, e); seen.push({ sent: m && [m.x, m.y], ex: ex.map((v) => Math.round(v)) });
+        }
+        return { worst: +worst.toFixed(2), scale: +(g.iw / g.r.w).toFixed(3), seen };
+    };
+    await page.waitFor("document.getElementById('Desk').width == 1440", 5000); // the agent's new size has arrived
+    await sleep(400);
+    let fr = await frame();
+    check('Steg 5, Anpassa: bilden i mitten (lika kant vänster/höger och upp/ner), hela pixlar, jämn kant runt om', Math.abs(fr.l - fr.r) <= 1 && Math.abs(fr.t - fr.b) <= 1 && Math.min(fr.l, fr.t) >= 7.5 && Math.min(fr.l, fr.t) <= 8.5 && Number.isInteger(fr.w) && Number.isInteger(fr.h), fr);
+    check('Steg 5: ingen röd fokusruta i hörnet, mörkt tema som standard', fr.focus === 'none' && fr.theme === 'dark', { focus: fr.focus, theme: fr.theme });
+    let me = await mouseErr();
+    check('Steg 5, Anpassa: musen hamnar exakt (högst en fjärrpixel fel)', me.worst <= Math.max(1, me.scale), me);
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1.5, mobile: false });
+    await page.click('#rmmFit [data-fit="0"]');
+    await waitComp((x) => x.scaling === 1024, 4000, '100 % at 1.5');
+    await page.waitFor("document.getElementById('Desk').width == 3840", 5000);
+    await sleep(300);
+    fr = await frame();
+    check('Steg 5, 100 % på 150 %-skärm: en fjärrpixel = en skärmpixel (2560 px CSS för 3840)', Math.abs(fr.w - 2560) < 1 && !fr.crisp, fr);
+    me = await mouseErr([300, 200]);
+    check('Steg 5, 100 % med rullning på 150 %-skärm: musen hamnar exakt', me.worst <= 1.5, me);
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 2, mobile: false });
+    await page.waitFor("document.getElementById('Desk').classList.contains('rmm-crisp')", 6000).catch(() => null); // a new pixel ratio is seen within about 2 s
+    fr = await frame();
+    me = await mouseErr([500, 300]);
+    check('Steg 5, 100 % på Retina: två skärmpixlar per fjärrpixel utan suddning, musen exakt', fr.w === 3840 && fr.crisp && me.worst <= 1, { fr, me });
+    await page.click('#rmmFit [data-fit="1"]');
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await waitComp((x) => x.scaling === 384, 4000, 'back after step 5');
+
     // ---------------------------------------------------------------- screens
     const labels = await page.eval("Array.from(document.querySelectorAll('#rmmDisplays .rmm-btn')).map(b => b.textContent)");
     check('En knapp per skärm och Alla skärmar', JSON.stringify(labels) === JSON.stringify(['Skärm 1', 'Skärm 2', 'Alla skärmar']), labels);

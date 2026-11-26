@@ -731,10 +731,239 @@
         body.rmm-mobile #rmmReconnect > div { padding: 18px 22px; }
         body.rmm-mobile .rmm-desk-only { display: none !important; }
         body:not(.rmm-mobile) .rmm-mobile-only { display: none !important; }
+
+        /* Nordbase Remote step 5 (2026-11-26): the bars and the frame in Control's UniFi-lik look.
+           Dark by default; light with #tema=ljus on the link (Control can pass its own theme that way; the
+           choice is remembered in this browser). Hairlines instead of frames, 32 px controls in 48 px bars,
+           grouped (status | picture | view | end, keys | input | control | time), icons where they help.
+           Desktop only: phones and tablets (rmm-mobile, step 2) keep their own look. */
+        html {
+            --rr-stage: #131416; --rr-bar: #1c1e21; --rr-line: #2b2e32; --rr-line-2: #3d4146;
+            --rr-field: rgba(249, 250, 250, 0.06); --rr-hover: rgba(249, 250, 250, 0.07); --rr-press: rgba(249, 250, 250, 0.11);
+            --rr-raised: #484d55; --rr-raised-shadow: inset 0 0 0 1px rgba(249, 250, 250, 0.06);
+            --rr-ink: #f9fafa; --rr-ink-2: #dee0e3; --rr-ink-3: #b0b5bc; --rr-ink-4: #8a929c; --rr-icon: #9aa1a9;
+            --rr-accent: #4797ff; --rr-accent-soft: rgba(71, 151, 255, 0.16); --rr-accent-ink: #80b7ff;
+            --rr-ok: #37be5f; --rr-ok-ink: #5fd383; --rr-warn: #e79913; --rr-crit: #ee6368; --rr-crit-ink: #ff9a9e; --rr-crit-soft: rgba(238, 99, 104, 0.14);
+            --rr-edge: rgba(0, 0, 0, 0.5);
+            --rr-font: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        }
+        html[data-rmm-theme="light"] {
+            --rr-stage: #eceef0; --rr-bar: #ffffff; --rr-line: #e8e9eb; --rr-line-2: #dee0e3;
+            --rr-field: rgba(33, 35, 39, 0.05); --rr-hover: rgba(33, 35, 39, 0.05); --rr-press: rgba(33, 35, 39, 0.09);
+            --rr-raised: #ffffff; --rr-raised-shadow: 0 0 0 1px rgba(33, 35, 39, 0.08), 0 1px 2px rgba(33, 35, 39, 0.12);
+            --rr-ink: #212327; --rr-ink-2: #50565e; --rr-ink-3: #6b727c; --rr-ink-4: #8a919a; --rr-icon: #676f79;
+            --rr-accent: #005fe0; --rr-accent-soft: #e5f1ff; --rr-accent-ink: #005fe0;
+            --rr-ok: #38cc65; --rr-ok-ink: #1b7f3b; --rr-warn: #f5a524; --rr-crit: #f0383b; --rr-crit-ink: #c8191d; --rr-crit-soft: #fdebeb;
+            --rr-edge: rgba(33, 35, 39, 0.14);
+        }
+        html body.rmm-remote:not(.rmm-mobile) { background: var(--rr-stage) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 {
+            height: 48px !important; min-height: 48px !important;
+            padding: 0 12px !important; gap: 12px !important;
+            background: var(--rr-bar) !important; color: var(--rr-ink) !important;
+            font-family: var(--rr-font) !important; font-size: 13px !important;
+            -webkit-font-smoothing: antialiased !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 { border-bottom: 1px solid var(--rr-line) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 { border-top: 1px solid var(--rr-line) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 > div,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 > div { gap: 6px !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 > div:not(.toright2) { min-width: 0 !important; flex: 0 1 auto !important; }
+
+        /* The stage: a calm surface, the picture with a hairline edge. */
+        html body.rmm-remote:not(.rmm-mobile) #deskarea3x {
+            height: calc(100vh - 96px) !important; max-height: calc(100vh - 96px) !important;
+            background: var(--rr-stage) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #DeskParent { background: var(--rr-stage) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #Desk { box-shadow: 0 0 0 1px var(--rr-edge) !important; background: #000 !important; }
+        html body.rmm-remote:not(.rmm-mobile) #Desk.rmm-actual { box-shadow: none !important; }
+        html body.rmm-remote #Desk.rmm-crisp { image-rendering: pixelated !important; }
+        html body.rmm-remote #DeskFocus { display: none !important; }
+
+        /* Buttons: 32 px, quiet until hovered. */
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-btn,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-btn {
+            height: 32px !important; min-height: 32px !important; min-width: 32px !important;
+            padding: 0 10px !important; gap: 6px !important;
+            border: 1px solid transparent !important; border-radius: 6px !important;
+            background: transparent !important; color: var(--rr-ink-2) !important;
+            font-family: var(--rr-font) !important; font-size: 13px !important; font-weight: 500 !important; letter-spacing: 0 !important;
+            box-shadow: none !important; transition: background .12s ease, color .12s ease;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-btn:hover,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-btn:hover { background: var(--rr-hover) !important; color: var(--rr-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-btn:active,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-btn:active { background: var(--rr-press) !important; transform: none; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-btn:disabled,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-btn:disabled { opacity: .4 !important; background: transparent !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-btn svg { flex: 0 0 auto !important; color: var(--rr-icon) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-btn:hover svg { color: currentColor !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-icon { width: 32px !important; min-width: 32px !important; padding: 0 !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-icon svg { color: var(--rr-ink-2) !important; }
+        html body.rmm-remote:not(.rmm-mobile) :fullscreen #rmmFullButton,
+        html:fullscreen body.rmm-remote:not(.rmm-mobile) #rmmFullButton { background: var(--rr-accent-soft) !important; }
+        html:fullscreen body.rmm-remote:not(.rmm-mobile) #rmmFullButton svg { color: var(--rr-accent-ink) !important; }
+
+        /* Segmented control (Auto/Skarp/Snabb, Anpassa/100 %, screens). */
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-seg,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-seg {
+            height: 32px !important; box-sizing: border-box !important; padding: 2px !important; gap: 2px !important;
+            border: 0 !important; border-radius: 7px !important; background: var(--rr-field) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-seg .rmm-btn,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-seg .rmm-btn {
+            height: 28px !important; min-height: 28px !important; padding: 0 11px !important;
+            border-radius: 5px !important; color: var(--rr-ink-3) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-seg .rmm-btn:hover,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-seg .rmm-btn:hover { background: transparent !important; color: var(--rr-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-seg .rmm-btn[aria-pressed="true"],
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-seg .rmm-btn[aria-pressed="true"] {
+            background: var(--rr-raised) !important; color: var(--rr-ink) !important; font-weight: 600 !important;
+            box-shadow: var(--rr-raised-shadow) !important;
+        }
+
+        /* Left: logo, computer, status, line. */
+        html body.rmm-remote:not(.rmm-mobile) #rmmRemoteBadge { gap: 10px !important; font-size: 14px !important; font-weight: 600 !important; color: var(--rr-ink) !important; min-width: 0 !important; }
+        html body.rmm-remote:not(.rmm-mobile) #rmmRemoteBadge::before { width: 24px !important; height: 24px !important; border-radius: 6px !important; flex: 0 0 auto !important; font-size: 13px !important;
+            background: var(--rr-ink) !important; color: var(--rr-bar) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #rmmRemoteBadge .rmm-brand { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; }
+        html body.rmm-remote:not(.rmm-mobile) #rmmRemoteBadge:has(#rmmRemoteDevice:empty) .rmm-brand { position: static !important; width: auto !important; height: auto !important; clip: auto !important; }
+        html body.rmm-remote:not(.rmm-mobile) #rmmRemoteBadge #rmmRemoteDevice {
+            display: inline-block !important; color: var(--rr-ink) !important; font-weight: 600 !important; max-width: 22vw !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-sep { width: 1px !important; height: 20px !important; background: var(--rr-line-2) !important; margin: 0 4px !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskstatus {
+            padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; gap: 7px !important;
+            color: var(--rr-ink-2) !important; font-size: 13px !important; font-weight: 500 !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskstatus::before { width: 8px !important; height: 8px !important; box-shadow: none !important; background: var(--rr-ok) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net {
+            height: 32px !important; padding: 0 8px !important; gap: 6px !important; border: 0 !important; border-radius: 6px !important; background: none !important;
+            color: var(--rr-ink-2) !important; font-size: 13px !important; font-weight: 500 !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net > i { display: none !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net small,
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net em { font-size: 13px !important; color: var(--rr-ink-3) !important; font-weight: 500 !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net em::before { content: "·" !important; margin-right: 6px !important; color: var(--rr-ink-4) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net small:empty + em::before { content: none !important; }
+        /* "Bra" is said by the bars; the word shows only when something is wrong. */
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 .rmm-net.rmm-net-good #rmmNetText { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip: rect(0 0 0 0) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-bars rect { fill: var(--rr-line-2) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-net-good .rmm-bars rect { fill: var(--rr-ok) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-net-shaky .rmm-bars rect:nth-child(-n+2) { fill: var(--rr-warn) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-net-bad .rmm-bars rect:nth-child(1) { fill: var(--rr-crit) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-net-shaky #rmmNetText { color: var(--rr-warn) !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-net-bad #rmmNetText { color: var(--rr-crit-ink) !important; }
+        html body.rmm-remote #rmmNet .rmm-bars { display: none !important; }
+        html body.rmm-remote:not(.rmm-mobile) #rmmNet .rmm-bars { display: block !important; flex: 0 0 auto !important; }
+
+        /* Right: settings and the one red button, last. */
+        html body.rmm-remote:not(.rmm-mobile) #deskActionsSettings { min-width: 32px !important; }
+        html body.rmm-remote:not(.rmm-mobile) #disconnectbutton1span { display: inline-flex; margin-left: 4px !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 #disconnectbutton1 {
+            min-width: 0 !important; padding: 0 12px !important;
+            background: var(--rr-crit-soft) !important; color: var(--rr-crit-ink) !important; font-weight: 600 !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 #disconnectbutton1 svg { color: currentColor !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea1 #disconnectbutton1:hover { background: var(--rr-crit) !important; color: #fff !important; }
+
+        /* Bottom: keycaps in one group, then input, then control, time on the right. */
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 > .rmm-keys { gap: 6px !important; }
+        html body.rmm-remote:not(.rmm-mobile) .rmm-keycaps {
+            display: inline-flex !important; align-items: center !important; flex: 0 0 auto !important; height: 32px !important; box-sizing: border-box !important;
+            padding: 2px !important; gap: 2px !important; border-radius: 7px !important; background: var(--rr-field) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-keycaps .rmm-btn {
+            height: 28px !important; min-height: 28px !important; min-width: 28px !important; padding: 0 9px !important;
+            border-radius: 5px !important; color: var(--rr-ink-2) !important; font-weight: 500 !important; gap: 5px !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-keycaps .rmm-btn:hover { background: var(--rr-raised) !important; box-shadow: var(--rr-raised-shadow) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-toggle[aria-pressed="true"] {
+            background: var(--rr-field) !important; color: var(--rr-ink) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .rmm-toggle[aria-pressed="true"] svg { color: var(--rr-accent-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskClip { display: inline-flex; font-weight: 500 !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan {
+            display: inline-flex !important; align-items: center !important; gap: 8px !important; height: 32px !important; min-height: 32px !important;
+            padding: 0 6px 0 10px !important; border-radius: 6px !important; cursor: pointer !important;
+            color: var(--rr-ink-2) !important; font-size: 13px !important; font-weight: 500 !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan:hover { background: var(--rr-hover) !important; color: var(--rr-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan input { position: absolute !important; opacity: 0 !important; width: 1px !important; height: 1px !important; margin: 0 !important; pointer-events: none !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan .rmm-mouse { color: var(--rr-icon) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan .rmm-switch {
+            position: relative !important; width: 28px !important; height: 16px !important; border-radius: 999px !important; flex: 0 0 auto !important;
+            background: var(--rr-line-2) !important; transition: background .15s ease;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan .rmm-switch::after {
+            content: "" !important; position: absolute !important; left: 2px !important; top: 2px !important; width: 12px !important; height: 12px !important; border-radius: 999px !important;
+            background: #fff !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important; transition: transform .15s ease;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan:has(input:checked) .rmm-switch { background: var(--rr-accent) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan:has(input:checked) .rmm-switch::after { transform: translateX(12px) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #DeskControlSpan:has(input:focus-visible) { outline: 2px solid var(--rr-accent) !important; outline-offset: 1px !important; }
+        html body.rmm-remote:not(.rmm-mobile) #p11power,
+        html body.rmm-remote:not(.rmm-mobile) #DeskTimer {
+            min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important;
+            color: var(--rr-ink-3) !important; font-size: 13px !important; font-variant-numeric: tabular-nums !important; gap: 6px !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #p11power:not(:empty)::before {
+            content: "" !important; width: 14px !important; height: 14px !important; flex: 0 0 auto !important; background: var(--rr-icon) !important;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.9'/%3E%3Cpath d='M7 3.8V7l2.2 1.4'/%3E%3C/svg%3E") center / contain no-repeat !important;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.9'/%3E%3Cpath d='M7 3.8V7l2.2 1.4'/%3E%3C/svg%3E") center / contain no-repeat !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #p11power:not(:empty) + #DeskTimer:not(:empty)::before { content: "·" !important; color: var(--rr-ink-4) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #deskarea4 .toright2 { gap: 10px !important; }
+
+        /* The rail (Skrivbord, Terminal, Filer) when the link has more than the desktop. */
+        html body.rmm-remote:not(.rmm-mobile) #LeftSideToolBar {
+            box-sizing: border-box !important; background: var(--rr-bar) !important; border-right: 1px solid var(--rr-line) !important; padding-top: 8px !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #LeftSideToolBar .slbbutton {
+            width: 38px !important; height: 38px !important; margin: 0 0 4px 7px !important; border-radius: 8px !important; opacity: 1 !important;
+            background: transparent !important; color: var(--rr-icon) !important;
+        }
+        html body.rmm-remote:not(.rmm-mobile) #LeftSideToolBar .slbbutton:hover { background: var(--rr-hover) !important; color: var(--rr-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #LeftSideToolBar .slbbutton.slbbuttonsel2 { width: 38px !important; border-radius: 8px !important; background: var(--rr-accent-soft) !important; color: var(--rr-accent-ink) !important; }
+        html body.rmm-remote:not(.rmm-mobile) #LeftSideToolBar .slbbutton > div {
+            top: 9px !important; left: 9px !important; width: 20px !important; height: 20px !important; background: currentColor !important;
+            -webkit-mask: var(--rr-rail-icon) center / contain no-repeat !important; mask: var(--rr-rail-icon) center / contain no-repeat !important;
+        }
+        html body.rmm-remote #LeftSideToolBar .slb1 { --rr-rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='16' height='11' rx='1.8'/%3E%3Cpath d='M7 17.2h6M10 14v3.2' stroke-linecap='round'/%3E%3C/svg%3E"); }
+        html body.rmm-remote #LeftSideToolBar .slb2 { --rr-rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='16' height='14' rx='1.8'/%3E%3Cpath d='M5.5 8l2.5 2-2.5 2M10 13h4'/%3E%3C/svg%3E"); }
+        html body.rmm-remote #LeftSideToolBar .slb3 { --rr-rail-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M2.5 5.2c0-.9.7-1.6 1.6-1.6h3.6l1.8 2h6.4c.9 0 1.6.7 1.6 1.6v7.6c0 .9-.7 1.6-1.6 1.6H4.1c-.9 0-1.6-.7-1.6-1.6z'/%3E%3C/svg%3E"); }
+
+        /* Narrow windows: the least needed goes first, the bars never wrap. */
+        @media (max-width: 1400px) { html body.rmm-remote:not(.rmm-mobile) #p11power { display: inline-flex !important; } }
+        @media (max-width: 1500px) { html body.rmm-remote:not(.rmm-mobile) #deskarea4 #DeskTimer { display: none !important; } }
+        @media (max-width: 1360px) {
+            html body.rmm-remote:not(.rmm-mobile) #deskarea1 #rmmNet em { display: none !important; }
+            html body.rmm-remote:not(.rmm-mobile) #deskarea4 #DeskType.rmm-btn,
+            html body.rmm-remote:not(.rmm-mobile) #deskarea4 #DeskClip.rmm-btn,
+            html body.rmm-remote:not(.rmm-mobile) #deskarea4 #rmmMacButton.rmm-btn { font-size: 0 !important; gap: 0 !important; width: 32px !important; padding: 0 !important; }
+        }
+        @media (max-width: 1100px) {
+            html body.rmm-remote:not(.rmm-mobile) #deskarea4 #p11power { display: none !important; }
+            html body.rmm-remote:not(.rmm-mobile) #deskarea1 #deskstatus { font-size: 0 !important; gap: 0 !important; }
+            html body.rmm-remote:not(.rmm-mobile) #deskarea4 #DeskControlSpan { font-size: 0 !important; gap: 6px !important; }
+        }
     </style>
+    <script>
+        // Step 5: the bars follow Control's theme when the link says so (#tema=ljus / #tema=mork), remembered here.
+        (function () {
+            var t = null;
+            try { var m = /(?:^|[#&])tema=(ljus|mork|light|dark)(?:&|$)/.exec(location.hash || ''); if (m) { t = ((m[1] == 'ljus') || (m[1] == 'light')) ? 'light' : 'dark'; try { localStorage.setItem('rmm-tema', t); } catch (e) { } } } catch (e) { }
+            if (!t) { try { t = localStorage.getItem('rmm-tema'); } catch (e) { } }
+            document.documentElement.setAttribute('data-rmm-theme', (t == 'light') ? 'light' : 'dark');
+        })();
+    </script>
 </head>
 <body class="rmm-remote" style="overflow:hidden;background-color:black">
-    <div id=LeftSideToolBar style="display:none;position:absolute;left:0;bottom:0;width:52px;top:0;background:#113962;background:linear-gradient(to bottom, #104893 0%,#113962 100%);color:white;border-right: 5px solid #BBB;">
+    <div id=LeftSideToolBar style="display:none;position:absolute;left:0;bottom:0;width:54px;top:0">
         <div id=LeftMenuDesktop class="slbbutton slbbuttonsel2" title="Skrivbord" onclick=go(11)>
             <div class="slb1" style="position:absolute;top:6px;left:6px"></div>
         </div>
@@ -749,7 +978,6 @@
         <div id=deskarea0>
             <div id=deskarea1 class="areaHead" style="line-height:24px">
                 <div class="toright2">
-                    <div id="rmmNet" class="rmm-net" title="Anslutningen: mätt fördröjning och hur bilderna kommer fram"><i></i><span id="rmmNetText">Ingen kontakt</span><small id="rmmNetMs"></small><em id="rmmNetPath"></em></div>
                     <div id="rmmQuality" class="rmm-seg" role="group" aria-label="Bild">
                         <button type="button" class="rmm-btn" data-q="auto" aria-pressed="true" onclick="rmmSetQuality('auto')" title="Anpassar bilden efter nätet">Auto</button>
                         <button type="button" class="rmm-btn" data-q="sharp" aria-pressed="false" onclick="rmmSetQuality('sharp')" title="Skarp text, mer data">Skarp</button>
@@ -763,18 +991,20 @@
                     <div class='deskareaicon' title="Toggle View Mode" onclick="toggleAspectRatio(1)">&#8690;</div>
                     <div class='deskareaicon' title="Rotate Left" onclick="drotate(-1)">&olarr;</div>
                     <div class='deskareaicon' title="Rotate Right" onclick="drotate(1)">&orarr;</div>
-                    <input id="deskActionsSettings" type="button" value="Inställningar" title="Inställningar för fjärrstyrningen" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()" class="mR" />
+                    <button type="button" id="deskActionsSettings" class="rmm-btn rmm-icon" title="Inställningar" aria-label="Inställningar" onkeypress="return false" onkeydown="return false" onclick="showDesktopSettings()"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h7M13.5 5h2M2.5 13h2M8.5 13h7"/><circle cx="11.5" cy="5" r="2"/><circle cx="6.5" cy="13" r="2"/></svg></button>
                     <div id="desktopCustomUiButtons" style="float:left"></div>
+                    <span id=disconnectbutton1span><button type="button" id=disconnectbutton1 class="rmm-btn rmm-end" title="Avsluta fjärrstyrningen" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 1.8v5.4"/><path d="M4.6 3.9a5.3 5.3 0 1 0 6.8 0"/></svg>Avsluta</button></span>
                     <div id="deskRecordIcon" class='deskareaicon' title="Servern spelar in sessionen" style="display:none;background-color:red;width:12px;height:12px;border-radius:6px;margin-top:5px"></div>
                 </div>
                 <div>
-                    <span id="rmmRemoteBadge">Nordbase Remote <span id="rmmRemoteDevice"></span></span>
+                    <span id="rmmRemoteBadge" title="Nordbase Remote"><span class="rmm-brand">Nordbase Remote</span><span id="rmmRemoteDevice"></span></span>
                     <div id="idx_deskFullBtn2" onclick=deskToggleFull(event)>&nbsp;&#x2716;</div>
                     <input type="button" id="autoconnectbutton1" value="AutoConnect" onclick=autoConnectDesktop(event) onkeypress="return false" onkeydown="return false" style="display:none" />
                     <span id=connectbutton1span><input type=button id=connectbutton1 cmenu="deskConnectButton" value="Anslut" onclick=connectDesktop(event,3) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
                     <span id=connectbutton1hspan>&nbsp;<input type=button id=connectbutton1h value="HW Connect" title="Connect using Intel AMT hardware KVM" onclick=connectDesktop(event,2) onkeypress="return false" onkeydown="return false" disabled="disabled" /></span>
-                    <span id=disconnectbutton1span><input type=button id=disconnectbutton1 value="Avsluta" onclick=connectDesktop(event,0) onkeypress="return false" onkeydown="return false" /></span>
+                    <span class="rmm-sep rmm-sep-top"></span>
                     <span id="deskstatus">Väntar</span><span id="deskmetadata"></span>
+                    <div id="rmmNet" class="rmm-net" title="Anslutningen: mätt fördröjning och hur bilderna kommer fram"><svg class="rmm-bars" width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><rect x="1" y="9" width="3.2" height="4" rx="1"/><rect x="6.4" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="11.8" y="1" width="3.2" height="12" rx="1"/></svg><i></i><span id="rmmNetText">Ingen kontakt</span><small id="rmmNetMs"></small><em id="rmmNetPath"></em></div>
                 </div>
             </div>
             <div id=deskarea3x style="max-height:calc(100vh - 52px);height:calc(100vh - 56px);">
@@ -800,7 +1030,7 @@
                     <div id="rmmDisplays" class="rmm-seg" role="group" aria-label="Skärmar" style="display:none"></div>
                     <span id="DeskLatency" style="line-height:22px;width:50px"  title="Fördröjning"></span>
                     <span id="p11power"></span>
-                    <span id="DeskTimer" style="line-height:22px" title="Sessionens tid"></span>
+                    <span id="DeskTimer" title="Sessionens tid"></span>
                     <select id=termdisplays style="display:none" onchange=deskSetDisplay(event) onkeypress="return false" onkeydown="return false"></select>
                     <span id=DeskSaveImageButton title="Save a screenshot of the remote desktop"><img src='images/icon-camera.png' onclick=deskSaveImage() height=16 width=16 style=padding-top:2px /></span>
                 </div>
@@ -821,17 +1051,20 @@
                         <option value=12>Win+Right</option>
                     </select>
                     <input id="DeskWD" type=button value="Send" onkeypress="return false" onkeydown="return false" onclick="deskSendKeys()" />
-                    <button type="button" class="rmm-btn rmm-quick" data-key="10" onclick="rmmQuickKey(10)" title="Skickar Ctrl+Alt+Del, även på inloggningsskärmen">Ctrl+Alt+Del</button>
-                    <button type="button" class="rmm-btn rmm-quick" data-key="5" onclick="rmmQuickKey(5)" title="Windows-tangenten (Start)">Win</button>
-                    <button type="button" class="rmm-btn rmm-quick" data-key="esc" onclick="rmmQuickKey('esc')">Esc</button>
-                    <button type="button" class="rmm-btn rmm-quick" data-key="tab" onclick="rmmQuickKey('tab')">Tab</button>
-                    <button type="button" class="rmm-btn rmm-quick" data-key="9" onclick="rmmQuickKey(9)" title="Byt fönster">Alt+Tab</button>
-                    <button type="button" class="rmm-btn rmm-quick" data-key="7" onclick="rmmQuickKey(7)" title="Stäng fönstret">Alt+F4</button>
+                    <div class="rmm-keycaps" role="group" aria-label="Tangenter">
+                        <button type="button" class="rmm-btn rmm-quick" data-key="10" onclick="rmmQuickKey(10)" title="Skickar Ctrl+Alt+Del, även på inloggningsskärmen">Ctrl+Alt+Del</button>
+                        <button type="button" class="rmm-btn rmm-quick" data-key="5" onclick="rmmQuickKey(5)" title="Windows-tangenten (Start)"><svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor" aria-hidden="true"><rect x="0.5" y="0.5" width="5.5" height="5.5" rx="0.6"/><rect x="7" y="0.5" width="5.5" height="5.5" rx="0.6"/><rect x="0.5" y="7" width="5.5" height="5.5" rx="0.6"/><rect x="7" y="7" width="5.5" height="5.5" rx="0.6"/></svg>Win</button>
+                        <button type="button" class="rmm-btn rmm-quick" data-key="esc" onclick="rmmQuickKey('esc')">Esc</button>
+                        <button type="button" class="rmm-btn rmm-quick" data-key="tab" onclick="rmmQuickKey('tab')">Tab</button>
+                        <button type="button" class="rmm-btn rmm-quick" data-key="9" onclick="rmmQuickKey(9)" title="Byt fönster">Alt+Tab</button>
+                        <button type="button" class="rmm-btn rmm-quick" data-key="7" onclick="rmmQuickKey(7)" title="Stäng fönstret">Alt+F4</button>
+                    </div>
                     <span class="rmm-sep"></span>
-                    <input id="DeskType" style="" type="button" value="Skriv text" title="Skriv in text som tangenttryck" onkeypress="return false" onkeydown="return false" onclick="showDeskType()" />
-                    <input id="DeskClip" style="" type="button" value="Urklipp" onkeypress="return false" onkeydown="return false" onclick="showDeskClip()" />
-                    <button type="button" id="rmmMacButton" class="rmm-btn rmm-toggle" aria-pressed="false" onclick="rmmToggleMacKeys()" title="Mac-tangentbord till Windows: Option ger @ £ $ € { [ ] } \ | ~ och Cmd fungerar som Ctrl">Mac-tangenter</button>
-                    <label><span id="DeskControlSpan" title="Slå av för att bara titta"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" />Styr datorn</span></label>
+                    <button type="button" id="DeskType" class="rmm-btn" title="Skriv in text som tangenttryck" onkeypress="return false" onkeydown="return false" onclick="showDeskType()"><svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="0.75" y="0.75" width="16.5" height="12.5" rx="2.2"/><path d="M4 4.6h.5M7 4.6h.5M10 4.6h.5M13 4.6h.5M4 7.4h.5M7 7.4h.5M10 7.4h.5M13 7.4h.5M5.5 10.2h7"/></svg>Skriv text</button>
+                    <button type="button" id="DeskClip" class="rmm-btn" onkeypress="return false" onkeydown="return false" onclick="showDeskClip()"><svg width="14" height="16" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.2H2.6c-.8 0-1.4.6-1.4 1.4v9.8c0 .8.6 1.4 1.4 1.4h8.8c.8 0 1.4-.6 1.4-1.4V3.6c0-.8-.6-1.4-1.4-1.4H9.5"/><rect x="4.5" y="0.9" width="5" height="2.8" rx="0.9"/></svg>Urklipp</button>
+                    <button type="button" id="rmmMacButton" class="rmm-btn rmm-toggle" aria-pressed="false" onclick="rmmToggleMacKeys()" title="Mac-tangentbord till Windows: Option ger @ £ $ € { [ ] } \ | ~ och Cmd fungerar som Ctrl"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 5h5v5H5zM5 5V3.2A1.8 1.8 0 1 0 3.2 5H5M10 5V3.2A1.8 1.8 0 1 1 11.8 5H10M5 10v1.8A1.8 1.8 0 1 1 3.2 10H5M10 10v1.8a1.8 1.8 0 1 0 1.8-1.8H10"/></svg>Mac-tangenter</button>
+                    <span class="rmm-sep"></span>
+                    <label><span id="DeskControlSpan" title="Slå av för att bara titta"><input id="DeskControl" type="checkbox" onkeypress="return false" onkeydown="return false" onclick="toggleKvmControl()" /><svg class="rmm-mouse" width="12" height="16" viewBox="0 0 12 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="0.75" y="0.75" width="10.5" height="14.5" rx="5.25"/><path d="M6 3.6v2.6" stroke-linecap="round"/></svg>Styr datorn<i class="rmm-switch" aria-hidden="true"></i></span></label>
                 </div>
             </div>
         </div>
@@ -1419,40 +1652,64 @@
             if (deskAspectRatio == 2) {
                 // Scale mode
                 QS('Desk')['margin-top'] = null;
+                QS('Desk').margin = ''; QS('Desk').left = ''; QS('Desk').top = ''; QS('Desk').right = ''; QS('Desk').bottom = '';
                 QS('Desk').height = '100%';
                 QS('Desk').width = '100%';
                 QS('DeskParent').overflow = 'hidden';
-            } else if (deskAspectRatio == 1) {
-                // Zoomed mode
-                QS('Desk')['margin-top'] = '0px';
-                //QS('Desk')['margin-left'] = '0px';
-                QS('Desk').height = deskH + 'px';
-                QS('Desk').width = deskW + 'px';
-                QS('DeskParent').overflow = 'scroll';
             } else {
-                // Fixed aspect ratio
-                if ((parentH / parentW) > (deskH / deskW)) {
-                    var hNew = ((deskH * parentW) / deskW) + 'px';
-                    //if (webPageFullScreen || fullscreen) {
-                    //QS('deskarea3x').height = null;
-                    //} else {
-                    // QS('deskarea3x').height = hNew;
-                    //QS('deskarea3x').height = null;
-                    //}
-                    QS('Desk').height = hNew;
-                    QS('Desk').width = '100%';
-                } else {
-                    var wNew = ((deskW * parentH) / deskH) + 'px';
-                    //if (webPageFullScreen || fullscreen) {
-                    //QS('Desk').height = null;
-                    //} else {
-                    QS('Desk').height = '100%';
-                    //}
-                    QS('Desk').width = wNew;
-                }
-                QS('Desk')['margin-top'] = null;
-                QS('DeskParent').overflow = 'hidden';
+                // Step 5 (2026-11-26): rmmPlaceDesk sets an exact, centred box (whole CSS pixels in Anpassa,
+                // whole device pixels per remote pixel in 100 %), so the picture sits evenly in its frame and
+                // clicks land where the pointer is.
+                rmmPlaceDesk(deskAspectRatio == 1);
             }
+        }
+
+        // Nordbase Remote step 5 (2026-11-26). Was: Anpassa left the picture against the top bar with uneven
+        // black bands, 100 % hung under the top bar instead of in the middle and was drawn soft on a Retina
+        // screen, and a small red focus box showed in the corner.
+        //   Anpassa: the largest whole-pixel box with the screen's shape inside the frame (an even gutter on
+        //   every side), centred, on a calm surface instead of black.
+        //   100 %:   each remote pixel is a whole number of device pixels (2 on Retina, 1 on a 125 % or 150 %
+        //   Windows screen), drawn without smoothing; centred when it fits, scrolled from the top left when not.
+        // agent-desktop maps a click with offsetLeft/offsetTop and clientWidth, which are whole CSS pixels:
+        // whole-pixel boxes keep that exact. rmmScrollAdd turns the scroll offset into remote pixels.
+        var RMM_GUTTER = 8;
+        function rmmDeskPixel() { var d = window.devicePixelRatio || 1; return { dpr: d, n: Math.max(1, Math.floor(d + 0.01)) }; }
+        function rmmPlaceDesk(actual) {
+            var c = Q('Desk'), p = Q('DeskParent'), st = c.style;
+            if (!c || !p) return;
+            var pw = p.clientWidth, ph = p.clientHeight, dw = c.width, dh = c.height, w, h, l, t;
+            if (!pw || !ph || !dw || !dh) return;
+            if (actual) {
+                var px = rmmDeskPixel();
+                w = dw * px.n / px.dpr; h = dh * px.n / px.dpr;
+                st.width = w + 'px'; st.height = h + 'px';
+                p.style.overflow = 'auto';
+                var aw = p.clientWidth, ah = p.clientHeight; // without scroll bars, if any
+                l = (w < aw) ? Math.round(((aw - w) / 2) * px.dpr) / px.dpr : 0;
+                t = (h < ah) ? Math.round(((ah - h) / 2) * px.dpr) / px.dpr : 0;
+                c.classList.add('rmm-actual');
+                c.classList.toggle('rmm-crisp', px.n > 1);
+            } else {
+                var g = isBrowserFullscreen() ? 0 : RMM_GUTTER;
+                if ((pw < 480) || (ph < 320)) { g = 0; }
+                var bw = pw - (2 * g), bh = ph - (2 * g), s = Math.min(bw / dw, bh / dh);
+                w = Math.max(1, Math.floor(dw * s)); h = Math.max(1, Math.floor(dh * s));
+                if ((Math.abs(w - bw) <= 1)) { w = bw; } if ((Math.abs(h - bh) <= 1)) { h = bh; }
+                l = Math.floor((pw - w) / 2); t = Math.floor((ph - h) / 2);
+                p.style.overflow = 'hidden';
+                p.scrollLeft = 0; p.scrollTop = 0;
+                c.classList.remove('rmm-actual', 'rmm-crisp');
+            }
+            st.margin = '0'; st.right = 'auto'; st.bottom = 'auto';
+            st.left = l + 'px'; st.top = t + 'px';
+            st.width = w + 'px'; st.height = h + 'px';
+            st['margin-top'] = '0px';
+        }
+        function rmmScrollAdd(e) {
+            var p = Q('DeskParent'), c = Q('Desk'), sx = 1, sy = 1;
+            if (c && c.clientWidth && c.clientHeight) { sx = c.width / c.clientWidth; sy = c.height / c.clientHeight; }
+            e.addx = p ? (p.scrollLeft * sx) : 0; e.addy = p ? (p.scrollTop * sy) : 0;
         }
 
         function setupDesktop() {
@@ -2341,10 +2598,10 @@
             dblClickDetectArgs.y = e.clientY;
         }
 
-        function dmousedown(e) { setSessionActivity(); e.addx = Q('DeskParent').scrollLeft; e.addy = Q('DeskParent').scrollTop; if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousedown(e); desktop.m.sendKeepAlive(); } else { desktop.m.mousedown(e); } } dblClickDetect(e); }
-        function dmouseup(e) { setSessionActivity(); e.addx = Q('DeskParent').scrollLeft; e.addy = Q('DeskParent').scrollTop; if (!xxdialogMode && desktop != null && isInputAllowed()) if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mouseup(e); desktop.m.sendKeepAlive(); } else { desktop.m.mouseup(e); } }
-        function dmousemove(e) { setSessionActivity(); e.addx = Q('DeskParent').scrollLeft; e.addy = Q('DeskParent').scrollTop; if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousemove(e); desktop.m.sendKeepAlive(); } else { desktop.m.mousemove(e); } } }
-        function dmousewheel(e) { setSessionActivity(); e.addx = Q('DeskParent').scrollLeft; e.addy = Q('DeskParent').scrollTop; if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousewheel(e); desktop.m.sendKeepAlive(); } else { if (desktop.m.mousewheel) { desktop.m.mousewheel(e); } } haltEvent(e); return true; } return false; }
+        function dmousedown(e) { setSessionActivity(); rmmScrollAdd(e); if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousedown(e); desktop.m.sendKeepAlive(); } else { desktop.m.mousedown(e); } } dblClickDetect(e); }
+        function dmouseup(e) { setSessionActivity(); rmmScrollAdd(e); if (!xxdialogMode && desktop != null && isInputAllowed()) if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mouseup(e); desktop.m.sendKeepAlive(); } else { desktop.m.mouseup(e); } }
+        function dmousemove(e) { setSessionActivity(); rmmScrollAdd(e); if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousemove(e); desktop.m.sendKeepAlive(); } else { desktop.m.mousemove(e); } } }
+        function dmousewheel(e) { setSessionActivity(); rmmScrollAdd(e); if (!xxdialogMode && desktop != null && isInputAllowed()) { if ((webRtcDesktop != null) && (webRtcDesktop.softdesktop != null)) { webRtcDesktop.softdesktop.m.mousewheel(e); desktop.m.sendKeepAlive(); } else { if (desktop.m.mousewheel) { desktop.m.mousewheel(e); } } haltEvent(e); return true; } return false; }
         function drotate(x) { if (!xxdialogMode && desktop != null) { desktop.m.setRotation(desktop.m.rotation + x); deskAdjust(); deskAdjust(); } }
 
 
@@ -3510,7 +3767,7 @@
             if (!window.matchMedia) return;
             try {
                 var mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
-                var fn = function () { if (mq.removeEventListener) { mq.removeEventListener('change', fn); } else if (mq.removeListener) { mq.removeListener(fn); } rmmOnWindowResize(); rmmWatchPixelRatio(); };
+                var fn = function () { if (mq.removeEventListener) { mq.removeEventListener('change', fn); } else if (mq.removeListener) { mq.removeListener(fn); } if (!rmmViewActive()) { deskAdjust(); } rmmOnWindowResize(); rmmWatchPixelRatio(); }; // step 5: 100 % depends on the pixel ratio
                 if (mq.addEventListener) { mq.addEventListener('change', fn); } else if (mq.addListener) { mq.addListener(fn); }
             } catch (ex) { }
         }
@@ -3795,7 +4052,7 @@
 
         function rmmOnWindowResize() {
             if (rmmResizeTimer != null) { clearTimeout(rmmResizeTimer); }
-            rmmResizeTimer = setTimeout(function () { rmmResizeTimer = null; rmmApplyProfile('resize'); }, 350);
+            rmmResizeTimer = setTimeout(function () { rmmResizeTimer = null; if (!rmmViewActive()) { deskAdjust(); } rmmApplyProfile('resize'); }, 350); // step 5: also places the picture again (100 % depends on the pixel ratio)
         }
 
         //
