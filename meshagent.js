@@ -972,7 +972,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
     obj.sendUpdatedIntelAmtPolicy = function (policy) {
         if (obj.agentExeInfo && (obj.agentExeInfo.amt == true)) { // Only send Intel AMT policy to agents what could have AMT.
             if (policy == null) { var mesh = parent.meshes[obj.dbMeshKey]; if (mesh == null) return; policy = mesh.amt; }
-            if ((policy != null) && (policy.type != 0)) {
+            if ((policy != null) && (policy.type != 0) && ((Array.isArray(policy.nodeids) == false) || (policy.nodeids.indexOf(obj.dbNodeKey) >= 0))) { // Nordbase: a policy held to listed computers
                 const cookie = parent.parent.encodeCookie({ a: 'apf', n: obj.dbNodeKey, m: obj.dbMeshKey }, parent.parent.loginCookieEncryptionKey);
                 try { obj.send(JSON.stringify({ action: 'amtconfig', user: '**MeshAgentApfTunnel**', pass: cookie })); } catch (ex) { }
             }

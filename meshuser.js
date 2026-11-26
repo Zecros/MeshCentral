@@ -589,6 +589,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
             serverinfo.redirport = args.redirport;
             if (parent.parent.webpush != null) { serverinfo.vapidpublickey = parent.parent.webpush.vapidPublicKey; } // Web push public key
             if (parent.parent.amtProvisioningServer != null) { serverinfo.amtProvServerMeshId = parent.parent.amtProvisioningServer.meshid; } // Device group that allows for bare-metal Intel AMT activation
+            serverinfo.nordbaseAmt = { nodeScope: 1, manager: (parent.parent.amtManager != null) }; // Nordbase: the CCM policy can be held to listed computers (amtpolicy.nodeids)
             if ((typeof domain.autoremoveinactivedevices == 'number') && (domain.autoremoveinactivedevices > 0)) { serverinfo.autoremoveinactivedevices = domain.autoremoveinactivedevices; } // Default number of days before inactive devices are removed
             if (domain.passwordrequirements) {
                 if (domain.passwordrequirements.lock2factor == true) { serverinfo.lock2factor = true; } // Indicate 2FA change are not allowed
@@ -2551,6 +2552,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         if ((command.amtpolicy.password != null) && (common.validateString(command.amtpolicy.password, 0, 32) == false)) break; // Check the amtpolicy.password
                         if ((command.amtpolicy.badpass != null) && common.validateInt(command.amtpolicy.badpass, 0, 1) == false) break; // Check the amtpolicy.badpass
                         if (common.validateInt(command.amtpolicy.cirasetup, 0, 2) == false) break; // Check the amtpolicy.cirasetup
+                        // Nordbase: optional list of computers the CCM policy applies to (Control activates one computer at a time).
+                        if ((command.amtpolicy.nodeids != null) && ((Array.isArray(command.amtpolicy.nodeids) == false) || (command.amtpolicy.nodeids.length < 1) || (command.amtpolicy.nodeids.length > 16) || (command.amtpolicy.nodeids.every(function (n) { return common.validateString(n, 8, 256); }) == false))) break;
                     } else if (command.amtpolicy.type === 3) {
                         if ((command.amtpolicy.password != null) && (common.validateString(command.amtpolicy.password, 0, 32) == false)) break; // Check the amtpolicy.password
                         if ((command.amtpolicy.badpass != null) && common.validateInt(command.amtpolicy.badpass, 0, 1) == false) break; // Check the amtpolicy.badpass
@@ -2571,6 +2574,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         if ((command.amtpolicy.type === 2) || (command.amtpolicy.type === 3)) {
                             amtpolicy = { type: command.amtpolicy.type, badpass: command.amtpolicy.badpass, cirasetup: command.amtpolicy.cirasetup };
                             if (command.amtpolicy.type === 3) { amtpolicy.ccm = command.amtpolicy.ccm; }
+                            if ((command.amtpolicy.type === 2) && Array.isArray(command.amtpolicy.nodeids)) { amtpolicy.nodeids = command.amtpolicy.nodeids.slice(); } // Nordbase: only these computers
                             if ((command.amtpolicy.password == null) && (mesh.amt != null) && (typeof mesh.amt.password == 'string')) { amtpolicy.password = mesh.amt.password; } // Keep the last password
                             if ((typeof command.amtpolicy.password == 'string') && (command.amtpolicy.password.length >= 8)) { amtpolicy.password = command.amtpolicy.password; } // Set a new password
                         }
@@ -2588,7 +2592,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                         // See if any agents for the affected device group is connected, if so, update the Intel AMT policy
                         for (var nodeid in parent.wsagents) {
                             const agent = parent.wsagents[nodeid];
-                            if (agent.dbMeshKey == command.meshid) { agent.sendUpdatedIntelAmtPolicy(amtpolicy); }
+                            if ((agent.dbMeshKey == command.meshid) && ((Array.isArray(amtpolicy.nodeids) == false) || (amtpolicy.nodeids.indexOf(agent.dbNodeKey) >= 0))) { agent.sendUpdatedIntelAmtPolicy(amtpolicy); } // Nordbase: only the listed computers
                         }
                     }
                     break;

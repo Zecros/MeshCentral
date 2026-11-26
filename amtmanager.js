@@ -479,6 +479,7 @@ module.exports.CreateAmtManager = function (parent) {
                     if ((typeof mesh.amt.password == 'string') && (mesh.amt.password != '')) { password = mesh.amt.password; }
                 }
             }
+            if ((mesh.amt != null) && Array.isArray(mesh.amt.nodeids) && (mesh.amt.nodeids.indexOf(dev.nodeid) < 0)) { amtPolicy = 0; } // Nordbase: the policy is held to listed computers
             if (amtPolicy == 0) { ciraPolicy = 0; } // If no policy, don't change CIRA state.
             if (amtPolicy == 1) { ciraPolicy = 1; } // If deactivation policy, clear CIRA.
             dev.policy = { amtPolicy: amtPolicy, ciraPolicy: ciraPolicy, badPass: badPass, password: password };
@@ -2603,6 +2604,7 @@ module.exports.CreateAmtManager = function (parent) {
         var amtPolicy = 0; // 0 = Do nothing, 1 = Deactivate CCM, 2 = CCM, 3 = ACM
         var ccmPolicy = 0; // Only used when in ACM policy: 0 = Do nothing, 1 = Deactivate CCM, 2 = CCM is ACM fails
         if (mesh.amt != null) { if (typeof mesh.amt.type == 'number') { amtPolicy = mesh.amt.type; } if (typeof mesh.amt.ccm == 'number') { ccmPolicy = mesh.amt.ccm; } }
+        if ((mesh.amt != null) && Array.isArray(mesh.amt.nodeids) && (mesh.amt.nodeids.indexOf(dev.nodeid) < 0)) { amtPolicy = 0; } // Nordbase: the policy is held to listed computers
         if ((typeof dev.mpsConnection.tag.meiState.OsAdmin != 'object') || (typeof dev.mpsConnection.tag.meiState.OsAdmin.user != 'string') || (typeof dev.mpsConnection.tag.meiState.OsAdmin.pass != 'string')) { amtPolicy = 0; }
         if (amtPolicy == 0) { removeAmtDevice(dev, 37); return false; } // Do nothing, we should not have gotten this CIRA-LMS connection.
         if (amtPolicy == 2) { activateIntelAmtCcm(dev, mesh.amt.password); } // Activate to CCM policy

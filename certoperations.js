@@ -153,6 +153,10 @@ module.exports.CertificateOperations = function (parent) {
             }
         }
 
+        // Nordbase: the AMT admin password never goes into the log file. Control keeps it encrypted in its own secret store,
+        // and MeshCentral keeps it on the device record (and in memory above) to manage the computer.
+        x = Object.assign({}, x); delete x.password;
+
         // Append to the log file
         var logpath = null;
         if ((domain.amtacmactivation == null) || (domain.amtacmactivation.log == null) || (typeof domain.amtacmactivation.log != 'string')) {
