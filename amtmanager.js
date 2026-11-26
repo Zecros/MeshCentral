@@ -2597,6 +2597,9 @@ module.exports.CreateAmtManager = function (parent) {
     // Intel AMT Activation
     //
 
+    // Nordbase: this AMT manager holds a device group's policy to amtpolicy.nodeids (meshuser.js tells Control so).
+    obj.nordbaseNodeScope = 1;
+
     function activateIntelAmt(dev) {
         // Find the Intel AMT policy
         const mesh = parent.webserver.meshes[dev.meshid];

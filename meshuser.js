@@ -589,7 +589,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
             serverinfo.redirport = args.redirport;
             if (parent.parent.webpush != null) { serverinfo.vapidpublickey = parent.parent.webpush.vapidPublicKey; } // Web push public key
             if (parent.parent.amtProvisioningServer != null) { serverinfo.amtProvServerMeshId = parent.parent.amtProvisioningServer.meshid; } // Device group that allows for bare-metal Intel AMT activation
-            serverinfo.nordbaseAmt = { nodeScope: 1, manager: (parent.parent.amtManager != null) }; // Nordbase: the CCM policy can be held to listed computers (amtpolicy.nodeids)
+            serverinfo.nordbaseAmt = { nodeScope: ((parent.parent.amtManager != null) && (parent.parent.amtManager.nordbaseNodeScope === 1)) ? 1 : 0, manager: (parent.parent.amtManager != null) }; // Nordbase: the CCM policy can be held to listed computers (amtpolicy.nodeids)
             if ((typeof domain.autoremoveinactivedevices == 'number') && (domain.autoremoveinactivedevices > 0)) { serverinfo.autoremoveinactivedevices = domain.autoremoveinactivedevices; } // Default number of days before inactive devices are removed
             if (domain.passwordrequirements) {
                 if (domain.passwordrequirements.lock2factor == true) { serverinfo.lock2factor = true; } // Indicate 2FA change are not allowed
