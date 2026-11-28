@@ -151,6 +151,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
     // When data is received from the mesh agent web socket
     ws.on('message', function (msg) {
         dataAccounting();
+        obj.nordbaseLastInAt = Date.now(); // Nordbase: staged agent updates (nordbase/agent-rollout.js), a dead link counts as gone
         if (msg.length < 2) return;
         if (typeof msg == 'object') { msg = msg.toString('binary'); } // TODO: Could change this entire method to use Buffer instead of binary string
         if (obj.authenticated == 2) { // We are authenticated

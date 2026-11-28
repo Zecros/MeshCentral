@@ -2,9 +2,10 @@
  * Nordbase Control: staged agent updates, test computer first.
  *
  * NORDBASE PATCH: keep this file on every MeshCentral upgrade. All logic is here; upstream files only call it:
- *   meshagent.js  MeshCommand_AgentHash (cmdid 12): gate(), action 'agentupdate': allowManual(), obj.close(): disconnected()
+ *   meshagent.js  MeshCommand_AgentHash (cmdid 12): gate(), action 'agentupdate': allowManual(), obj.close(): disconnected(),
+ *                 ws 'message': obj.nordbaseLastInAt (a link whose answers stopped counts as gone)
  *   meshuser.js   processWebSocketData, action 'nordbaseAgentRollout' (full site administrators only): command()
- * Search for "Nordbase: staged agent updates" to find the four hooks. When this file is missing (not mounted),
+ * Search for "Nordbase: staged agent updates" to find the five hooks. When this file is missing (not mounted),
  * meshagent.js sends no agent binary update at all (fail closed).
  *
  * The rule:
@@ -113,7 +114,8 @@ function createAgentRollout(io) {
             for (const key of state.testNodes) {
                 const t = state.test[key];
                 if (!t || !state.released[t.arch] || io.connected(key)) continue;
-                const goneSince = (typeof t.disconnectedAt === 'number') ? t.disconnectedAt : Math.max(bootAt, state.releasedAt);
+                const lastIn = (typeof io.lastInAt === 'function') ? io.lastInAt(key) : null;
+                const goneSince = (typeof t.disconnectedAt === 'number') ? t.disconnectedAt : Math.max(bootAt, state.releasedAt, (typeof lastIn === 'number') ? lastIn : 0);
                 if (now - goneSince > ret) { latchStop(now, 'offline-after-release', key); return; }
             }
         }
@@ -334,7 +336,19 @@ function get(server) {
         load: function () { try { return fs.readFileSync(file, 'utf8'); } catch (ex) { return null; } },
         save: function (text) { const tmp = file + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, text, { mode: 0o600 }); fs.renameSync(tmp, file); },
         now: function () { return Date.now(); },
-        connected: function (nodeKey) { return (server.webserver != null) && (server.webserver.wsagents != null) && (server.webserver.wsagents[nodeKey] != null); },
+        // Upstream pings an agent every agentPing seconds but never closes a link whose answers stopped (a dead TCP link
+        // stayed "connected" for more than 15 minutes on staging, 28/11). Nothing received for 3 pings counts as gone.
+        connected: function (nodeKey) {
+            const agent = (server.webserver != null) && (server.webserver.wsagents != null) ? server.webserver.wsagents[nodeKey] : null;
+            if (agent == null) return false;
+            const ping = (server.args != null) && (typeof server.args.agentping == 'number') ? server.args.agentping : 0;
+            if ((ping <= 0) || (typeof agent.nordbaseLastInAt != 'number')) return true;
+            return (Date.now() - agent.nordbaseLastInAt) < (3 * ping * 1000 + 15000);
+        },
+        lastInAt: function (nodeKey) {
+            const agent = (server.webserver != null) && (server.webserver.wsagents != null) ? server.webserver.wsagents[nodeKey] : null;
+            return ((agent != null) && (typeof agent.nordbaseLastInAt == 'number')) ? agent.nordbaseLastInAt : null;
+        },
         serverHashes: function () {
             const out = {};
             const binaries = server.meshAgentBinaries || {};
