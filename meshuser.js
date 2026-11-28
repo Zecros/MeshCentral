@@ -696,6 +696,14 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
         try { command = JSON.parse(msg.toString('utf8')); } catch (e) { return; }
         if (common.validateString(command.action, 3, 32) == false) return; // Action must be a string between 3 and 32 chars
 
+        if (command.action == 'nordbaseAgentRollout') { // Nordbase: staged agent updates (nordbase/agent-rollout.js), full site administrators only
+            var rolloutReply = { action: 'nordbaseAgentRollout', responseid: command.responseid, ok: false, error: 'denied' };
+            if ((user.siteadmin === SITERIGHT_ADMIN) && (req.session.loginToken == null)) {
+                try { rolloutReply = require('./nordbase/agent-rollout.js').get(parent.parent).command(command, user.name); } catch (ex) { rolloutReply.error = 'unavailable'; }
+            }
+            obj.send(rolloutReply);
+            return;
+        }
         var commandHandler = serverCommands[command.action];
         if (commandHandler != null) { 
             try { commandHandler(command); return; }

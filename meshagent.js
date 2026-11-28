@@ -79,6 +79,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
         // Remove this agent from the webserver list
         if (parent.wsagents[obj.dbNodeKey] == obj) {
             delete parent.wsagents[obj.dbNodeKey];
+            try { if (parent.parent.nordbaseAgentRollout != null) { parent.parent.nordbaseAgentRollout.disconnected(obj.dbNodeKey, obj); } } catch (ex) { } // Nordbase: staged agent updates (nordbase/agent-rollout.js)
             parent.parent.ClearConnectivityState(obj.dbMeshKey, obj.dbNodeKey, 1, null, { remoteaddrport: obj.remoteaddrport, name: obj.name });
         }
 
@@ -269,7 +270,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
             else if (cmdid == 12) { // MeshCommand_AgentHash
                 if ((msg.length == 52) && (obj.agentExeInfo != null) && (obj.agentExeInfo.update == true)) {
                     const agenthash = msg.substring(4);
-                    const agentUpdateMethod = compareAgentBinaryHash(obj.agentExeInfo, agenthash);
+                    const agentUpdateMethod = nordbaseAgentRolloutGate(agenthash, compareAgentBinaryHash(obj.agentExeInfo, agenthash)); // Nordbase: staged agent updates (nordbase/agent-rollout.js)
                     if (agentUpdateMethod === 2) { // Use meshcore agent update system
                         // Send the recovery core to the agent, if the agent is capable of running one
                         if (((obj.agentInfo.capabilities & 16) != 0) && (parent.parent.meshAgentsArchitectureNumbers[obj.agentInfo.agentId].core != null)) {
@@ -1578,6 +1579,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
                     break;
                 }
                 case 'agentupdate': {
+                    if (nordbaseAgentRolloutManual() == false) break; // Nordbase: staged agent updates (nordbase/agent-rollout.js), also for "Update agents"
                     if ((obj.agentExeInfo != null) && (typeof obj.agentExeInfo.url == 'string')) {
                         var func = function agentUpdateFunc(argument, taskid, taskLimiterQueue) { // Medium priority task
                             // If agent disconnection, complete and exit now.
@@ -2129,6 +2131,22 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
 
     // Check if we need to update this agent, return true if agent binary update required.
     // Return 0 is no update needed, 1 update using native system, 2 update using meshcore system
+    // Nordbase: staged agent updates (nordbase/agent-rollout.js). A new agent binary goes to the test computers first,
+    // to the others only after an operator released it in Nordbase Control. Without the module: no update (fail closed).
+    function nordbaseAgentRolloutGate(agentHash, method) {
+        try {
+            return require('./nordbase/agent-rollout.js').get(parent.parent).gate({ nodeKey: obj.dbNodeKey, name: obj.name || (obj.agentInfo && obj.agentInfo.computerName), arch: obj.agentExeInfo.id, agentHash: Buffer.from(agentHash, 'binary').toString('hex'), serverHash: obj.agentExeInfo.hashhex, method: method }, obj);
+        } catch (ex) { parent.parent.debug('agentupdate', 'Nordbase agent rollout unavailable, no update: ' + ex); return 0; }
+    }
+
+    // Nordbase: the same rule for an update asked for by hand (MeshCentral "Update agents", console "agentupdate").
+    function nordbaseAgentRolloutManual() {
+        try {
+            if (obj.agentExeInfo == null) return false;
+            return require('./nordbase/agent-rollout.js').get(parent.parent).allowManual({ nodeKey: obj.dbNodeKey, arch: obj.agentExeInfo.id, serverHash: obj.agentExeInfo.hashhex });
+        } catch (ex) { parent.parent.debug('agentupdate', 'Nordbase agent rollout unavailable, no update: ' + ex); return false; }
+    }
+
     function compareAgentBinaryHash(agentExeInfo, agentHash) {
         // If this is a temporary agent and the server is set to not update temporary agents, don't update the agent.
         if ((obj.agentInfo.capabilities & 0x20) && (args.temporaryagentupdate === false)) return 0;
